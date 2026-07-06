@@ -2,27 +2,36 @@
 
 import { useEffect, useState } from "react";
 import { Place } from "@/types";
-import { DUMMY_PLACES } from "@/data/dummy-places";
-import { loadPlaces, savePlaces } from "@/lib/storage";
+import { fetchPlaces, insertPlace, updatePlaceRow } from "@/lib/db";
 
 export function usePlaces() {
-  const [places, setPlaces] = useState<Place[]>(() => loadPlaces() ?? DUMMY_PLACES);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    savePlaces(places);
-  }, [places]);
-
-  function addPlace(place: Omit<Place, "id">): Place {
-    const newPlace: Place = {
-      ...place,
-      id: `place-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    let active = true;
+    fetchPlaces()
+      .then((rows) => {
+        if (active) setPlaces(rows);
+      })
+      .catch((e) => console.error("가게 불러오기 실패:", e))
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
     };
-    setPlaces((prev) => [...prev, newPlace]);
-    return newPlace;
+  }, []);
+
+  async function addPlace(place: Omit<Place, "id">): Promise<Place> {
+    const created = await insertPlace(place);
+    setPlaces((prev) => [...prev, created]);
+    return created;
   }
 
   function updatePlaceLocation(placeId: string, coords: { lat: number; lng: number }) {
     setPlaces((prev) => prev.map((p) => (p.id === placeId ? { ...p, ...coords } : p)));
+    updatePlaceRow(placeId, coords).catch((e) => console.error("위치 저장 실패:", e));
   }
 
   function updatePlace(
@@ -30,7 +39,8 @@ export function usePlaces() {
     patch: Partial<Pick<Place, "name" | "category" | "naverMapUrl">>
   ) {
     setPlaces((prev) => prev.map((p) => (p.id === placeId ? { ...p, ...patch } : p)));
+    updatePlaceRow(placeId, patch).catch((e) => console.error("정보 저장 실패:", e));
   }
 
-  return { places, addPlace, updatePlaceLocation, updatePlace };
+  return { places, addPlace, updatePlaceLocation, updatePlace, loading };
 }

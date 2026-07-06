@@ -18,7 +18,7 @@ interface MapViewProps {
   pinMode: PinMode;
   onExitPinMode: () => void;
   onStartEditLocation: (placeId: string) => void;
-  onAddPlace: (place: Omit<Place, "id">) => Place;
+  onAddPlace: (place: Omit<Place, "id">) => Promise<Place>;
   onUpdatePlaceLocation: (placeId: string, coords: { lat: number; lng: number }) => void;
   onUpdatePlace: (
     placeId: string,
@@ -173,11 +173,16 @@ export default function MapView({
             coords={pendingLocation}
             categorySuggestions={categorySuggestions}
             onCancel={() => setPendingLocation(null)}
-            onSave={(place) => {
-              const newPlace = onAddPlace(place);
-              onSelectPlace(newPlace.id);
-              setPendingLocation(null);
-              onExitPinMode();
+            onSave={async (place) => {
+              try {
+                const newPlace = await onAddPlace(place);
+                onSelectPlace(newPlace.id);
+                setPendingLocation(null);
+                onExitPinMode();
+              } catch (e) {
+                console.error("가게 저장 실패:", e);
+                alert("가게 저장에 실패했어요. 잠시 후 다시 시도해주세요.");
+              }
             }}
           />
         </div>

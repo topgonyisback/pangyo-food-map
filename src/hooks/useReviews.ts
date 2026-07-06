@@ -2,22 +2,27 @@
 
 import { useEffect, useState } from "react";
 import { Review } from "@/types";
-import { loadReviews, saveReviews } from "@/lib/storage";
+import { fetchReviews, insertReview } from "@/lib/db";
 
 export function useReviews() {
-  const [reviews, setReviews] = useState<Review[]>(() => loadReviews());
+  const [reviews, setReviews] = useState<Review[]>([]);
 
   useEffect(() => {
-    saveReviews(reviews);
-  }, [reviews]);
+    let active = true;
+    fetchReviews()
+      .then((rows) => {
+        if (active) setReviews(rows);
+      })
+      .catch((e) => console.error("평가 불러오기 실패:", e));
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function addReview(review: Omit<Review, "id" | "createdAt">) {
-    const newReview: Review = {
-      ...review,
-      id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      createdAt: new Date().toISOString(),
-    };
-    setReviews((prev) => [...prev, newReview]);
+    insertReview(review)
+      .then((created) => setReviews((prev) => [...prev, created]))
+      .catch((e) => console.error("평가 저장 실패:", e));
   }
 
   function reviewsForPlace(placeId: string) {
