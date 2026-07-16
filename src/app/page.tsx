@@ -3,12 +3,19 @@
 import { useState } from "react";
 import MapView from "@/components/MapView";
 import ListView from "@/components/ListView";
+import PickView from "@/components/PickView";
 import { usePlaces } from "@/hooks/usePlaces";
 import { useReviews } from "@/hooks/useReviews";
 import { useIsHydrated } from "@/hooks/useIsHydrated";
 import { PinMode } from "@/types";
 
-type ViewMode = "map" | "list";
+type ViewMode = "map" | "list" | "pick";
+
+const TABS: { id: ViewMode; label: string }[] = [
+  { id: "map", label: "지도" },
+  { id: "list", label: "리스트" },
+  { id: "pick", label: "오늘 뭐먹지?" },
+];
 
 export default function Home() {
   const [view, setView] = useState<ViewMode>("map");
@@ -29,29 +36,28 @@ export default function Home() {
     setPinMode({ type: "edit", placeId });
   }
 
+  function goToPlaceOnMap(placeId: string) {
+    setView("map");
+    setSelectedPlaceId(placeId);
+  }
+
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2.5">
-        <h1 className="text-base font-bold text-gray-900">🍚 판교 점심 지도</h1>
+      <header className="flex items-center justify-between gap-2 border-b border-gray-200 bg-white px-4 py-2.5">
+        <h1 className="shrink-0 text-base font-bold text-gray-900">🍚 판교 점심 지도</h1>
         <div className="flex overflow-hidden rounded-full border border-gray-200">
-          <button
-            type="button"
-            onClick={() => setView("map")}
-            className={`px-4 py-1.5 text-sm font-medium ${
-              view === "map" ? "bg-blue-600 text-white" : "bg-white text-gray-600"
-            }`}
-          >
-            지도
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("list")}
-            className={`px-4 py-1.5 text-sm font-medium ${
-              view === "list" ? "bg-blue-600 text-white" : "bg-white text-gray-600"
-            }`}
-          >
-            리스트
-          </button>
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setView(tab.id)}
+              className={`whitespace-nowrap px-3 py-1.5 text-sm font-medium ${
+                view === tab.id ? "bg-blue-600 text-white" : "bg-white text-gray-600"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </header>
 
@@ -70,7 +76,7 @@ export default function Home() {
             onUpdatePlaceLocation={updatePlaceLocation}
             onUpdatePlace={updatePlace}
           />
-        ) : (
+        ) : view === "list" ? (
           <ListView
             places={places}
             reviews={reviews}
@@ -80,9 +86,11 @@ export default function Home() {
             onEditLocation={startEditingLocation}
             onUpdatePlace={updatePlace}
           />
+        ) : (
+          <PickView places={places} reviews={reviews} onGoToPlace={goToPlaceOnMap} />
         )}
 
-        {hydrated && !pinMode && (
+        {hydrated && !pinMode && view !== "pick" && (
           <button
             type="button"
             onClick={startAddingPlace}
