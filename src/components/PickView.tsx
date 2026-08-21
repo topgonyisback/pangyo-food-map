@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import confetti from "canvas-confetti";
 import { Place, Review } from "@/types";
 import { averageQuickRating, scoreToColor, scoreToLabel } from "@/lib/rating";
 
@@ -13,6 +15,9 @@ interface PickViewProps {
 
 type Phase = "idle" | "spinning" | "result";
 
+const ITEM_H = 76; // 릴 한 칸 높이(px)
+const REEL_LEN = 26; // 스핀 동안 지나가는 칸 수
+
 export default function PickView({
   places,
   reviews,
@@ -22,17 +27,10 @@ export default function PickView({
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [excludeBad, setExcludeBad] = useState(true);
   const [phase, setPhase] = useState<Phase>("idle");
-  const [displayId, setDisplayId] = useState<string | null>(null);
+  const [reel, setReel] = useState<Place[]>([]);
+  const [spinKey, setSpinKey] = useState(0);
   const [resultId, setResultId] = useState<string | null>(null);
-
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPickedRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
 
   const allCategories = useMemo(
     () => Array.from(new Set(places.map((p) => p.category))),
@@ -46,7 +44,6 @@ export default function PickView({
       }
       if (excludeBad) {
         const score = averageQuickRating(reviews.filter((r) => r.placeId === p.id));
-        // 평가가 없으면(=null) 후보 유지, '별로'(score<1.75)만 제외
         if (score !== null && score < 1.75) return false;
       }
       return true;
@@ -57,40 +54,56 @@ export default function PickView({
     setSelectedCategories((prev) =>
       prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
     );
+    setPhase("idle");
+    setResultId(null);
+  }
+
+  function fireConfetti() {
+    confetti({ particleCount: 130, spread: 75, origin: { y: 0.65 }, scalar: 0.9 });
+    setTimeout(
+      () => confetti({ particleCount: 60, spread: 100, origin: { y: 0.6 } }),
+      180
+    );
+  }
+
+  function finish(final: Place) {
+    setResultId(final.id);
+    setPhase("result");
+    lastPickedRef.current = final.id;
+    onSelectPlace(final.id); // 지도를 뽑힌 가게로 이동
+    fireConfetti();
   }
 
   function handlePick() {
     if (candidates.length === 0 || phase === "spinning") return;
 
-    // 직전에 뽑힌 곳은 후보가 2곳 이상일 때만 제외
     let finalPool = candidates;
     if (candidates.length > 1 && lastPickedRef.current) {
       finalPool = candidates.filter((p) => p.id !== lastPickedRef.current);
     }
     const final = finalPool[Math.floor(Math.random() * finalPool.length)];
 
-    setPhase("spinning");
+    // 접근성: 애니메이션 최소화 설정이면 바로 결과
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      finish(final);
+      return;
+    }
+
+    // 릴 구성: 무작위 칸들 + 마지막에 당첨
+    const items: Place[] = Array.from(
+      { length: REEL_LEN - 1 },
+      () => candidates[Math.floor(Math.random() * candidates.length)]
+    );
+    items.push(final);
+    setReel(items);
     setResultId(null);
-
-    let ticks = 0;
-    const totalTicks = 16;
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => {
-      setDisplayId(candidates[Math.floor(Math.random() * candidates.length)].id);
-      ticks += 1;
-      if (ticks >= totalTicks) {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        setDisplayId(final.id);
-        setResultId(final.id);
-        setPhase("result");
-        lastPickedRef.current = final.id;
-        onSelectPlace(final.id); // 지도를 뽑힌 가게 위치로 이동
-
-      }
-    }, 70);
+    setPhase("spinning");
+    setSpinKey((k) => k + 1);
   }
 
-  const displayPlace = places.find((p) => p.id === displayId) ?? null;
   const resultPlace = places.find((p) => p.id === resultId) ?? null;
   const resultScore = resultPlace
     ? averageQuickRating(reviews.filter((r) => r.placeId === resultPlace.id))
@@ -99,9 +112,7 @@ export default function PickView({
   return (
     <div className="absolute inset-x-2 top-16 bottom-2 z-10 flex flex-col overflow-y-auto rounded-2xl bg-white/95 p-4 shadow-lg ring-1 ring-black/5 backdrop-blur sm:inset-x-auto sm:left-3 sm:w-96">
       <h2 className="mb-1 text-xl font-bold text-gray-900">오늘 뭐먹지? 🎲</h2>
-      <p className="mb-4 text-sm text-gray-500">
-        조건을 고르고 버튼을 누르면 랜덤으로 골라드려요.
-      </p>
+      <p className="mb-4 text-sm text-gray-500">조건을 고르고 버튼을 누르면 랜덤으로 골라드려요.</p>
 
       {/* 필터 */}
       <div className="mb-4 space-y-3 rounded-xl bg-white p-3 shadow-sm">
@@ -115,7 +126,7 @@ export default function PickView({
                 onClick={() => toggleCategory(cat)}
                 className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
                   selectedCategories.includes(cat)
-                    ? "border-blue-500 bg-blue-500 text-white"
+                    ? "border-orange-500 bg-orange-500 text-white"
                     : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
                 }`}
               >
@@ -129,7 +140,11 @@ export default function PickView({
           <input
             type="checkbox"
             checked={excludeBad}
-            onChange={(e) => setExcludeBad(e.target.checked)}
+            onChange={(e) => {
+              setExcludeBad(e.target.checked);
+              setPhase("idle");
+              setResultId(null);
+            }}
             className="h-4 w-4"
           />
           &apos;별로예요&apos; 평가받은 곳 제외
@@ -139,7 +154,7 @@ export default function PickView({
       </div>
 
       {/* 결과 / 슬롯 영역 */}
-      <div className="mb-4 flex min-h-[140px] flex-1 items-center justify-center rounded-xl bg-white p-4 shadow-sm">
+      <div className="mb-4 flex min-h-[180px] flex-1 items-center justify-center overflow-hidden rounded-xl bg-white p-4 shadow-sm">
         {candidates.length === 0 ? (
           <p className="text-center text-sm text-gray-400">
             조건에 맞는 가게가 없어요.
@@ -151,11 +166,40 @@ export default function PickView({
             아래 버튼을 눌러 오늘의 점심을 뽑아보세요!
           </p>
         ) : phase === "spinning" ? (
-          <p className="text-center text-2xl font-bold text-gray-400">
-            {displayPlace?.name ?? "…"}
-          </p>
+          // 슬롯 릴 (세로로 감속하며 멈춤)
+          <div
+            className="relative w-full overflow-hidden"
+            style={{ height: ITEM_H }}
+          >
+            <motion.div
+              key={spinKey}
+              initial={{ y: 0 }}
+              animate={{ y: -(reel.length - 1) * ITEM_H }}
+              transition={{ duration: 2.4, ease: [0.12, 0.7, 0.1, 1] }}
+              onAnimationComplete={() => finish(reel[reel.length - 1])}
+            >
+              {reel.map((p, i) => (
+                <div
+                  key={i}
+                  className="flex flex-col items-center justify-center"
+                  style={{ height: ITEM_H }}
+                >
+                  <span className="text-xs font-medium text-blue-500">{p.category}</span>
+                  <span className="text-2xl font-bold text-gray-800">{p.name}</span>
+                </div>
+              ))}
+            </motion.div>
+            {/* 가운데 강조 라인 */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gray-100" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gray-100" />
+          </div>
         ) : resultPlace ? (
-          <div className="w-full text-center">
+          <motion.div
+            initial={{ scale: 0.6, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 320, damping: 18 }}
+            className="w-full text-center"
+          >
             <p className="mb-1 text-xs font-medium text-blue-600">{resultPlace.category}</p>
             <p className="mb-2 text-2xl font-bold text-gray-900">{resultPlace.name}</p>
             <span
@@ -182,19 +226,24 @@ export default function PickView({
                 지도에서 보기 · 평가하기
               </button>
             </div>
-          </div>
+          </motion.div>
         ) : null}
       </div>
 
       {/* 뽑기 버튼 */}
-      <button
+      <motion.button
         type="button"
         onClick={handlePick}
         disabled={candidates.length === 0 || phase === "spinning"}
+        whileTap={{ scale: 0.96 }}
         className="w-full rounded-xl bg-blue-600 py-4 text-lg font-bold text-white shadow-lg transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
       >
-        {phase === "spinning" ? "뽑는 중…" : phase === "result" ? "다시 뽑기 🎲" : "오늘의 점심 뽑기 🎲"}
-      </button>
+        {phase === "spinning"
+          ? "뽑는 중…"
+          : phase === "result"
+            ? "다시 뽑기 🎲"
+            : "오늘의 점심 뽑기 🎲"}
+      </motion.button>
     </div>
   );
 }
