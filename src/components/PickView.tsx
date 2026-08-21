@@ -15,7 +15,7 @@ interface PickViewProps {
 
 type Phase = "idle" | "spinning" | "result";
 
-const ITEM_H = 76; // 릴 한 칸 높이(px)
+const ITEM_H = 116; // 릴 한 칸 높이(px)
 const REEL_LEN = 26; // 스핀 동안 지나가는 칸 수
 
 export default function PickView({
@@ -31,6 +31,7 @@ export default function PickView({
   const [spinKey, setSpinKey] = useState(0);
   const [resultId, setResultId] = useState<string | null>(null);
   const lastPickedRef = useRef<string | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
 
   const allCategories = useMemo(
     () => Array.from(new Set(places.map((p) => p.category))),
@@ -59,11 +60,18 @@ export default function PickView({
   }
 
   function fireConfetti() {
-    confetti({ particleCount: 130, spread: 75, origin: { y: 0.65 }, scalar: 0.9 });
-    setTimeout(
-      () => confetti({ particleCount: 60, spread: 100, origin: { y: 0.6 } }),
-      180
-    );
+    // 슬롯 릴(결과 영역) 위치에서 터지도록 원점 계산 (뷰포트 정중앙 X)
+    let origin = { x: 0.5, y: 0.6 };
+    const el = stageRef.current;
+    if (el && typeof window !== "undefined") {
+      const r = el.getBoundingClientRect();
+      origin = {
+        x: (r.left + r.width / 2) / window.innerWidth,
+        y: (r.top + r.height / 2) / window.innerHeight,
+      };
+    }
+    confetti({ particleCount: 130, spread: 75, origin, scalar: 0.9 });
+    setTimeout(() => confetti({ particleCount: 60, spread: 100, origin }), 180);
   }
 
   function finish(final: Place) {
@@ -154,7 +162,10 @@ export default function PickView({
       </div>
 
       {/* 결과 / 슬롯 영역 */}
-      <div className="mb-4 flex min-h-[180px] flex-1 items-center justify-center overflow-hidden rounded-xl bg-white p-4 shadow-sm">
+      <div
+        ref={stageRef}
+        className="mb-4 flex min-h-[240px] flex-1 items-center justify-center overflow-hidden rounded-xl bg-white p-4 shadow-sm"
+      >
         {candidates.length === 0 ? (
           <p className="text-center text-sm text-gray-400">
             조건에 맞는 가게가 없어요.
@@ -184,8 +195,8 @@ export default function PickView({
                   className="flex flex-col items-center justify-center"
                   style={{ height: ITEM_H }}
                 >
-                  <span className="text-xs font-medium text-blue-500">{p.category}</span>
-                  <span className="text-2xl font-bold text-gray-800">{p.name}</span>
+                  <span className="mb-0.5 text-sm font-medium text-blue-500">{p.category}</span>
+                  <span className="text-3xl font-extrabold text-gray-800">{p.name}</span>
                 </div>
               ))}
             </motion.div>
