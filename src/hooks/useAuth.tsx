@@ -9,7 +9,9 @@ import {
 } from "react";
 import {
   createUserWithEmailAndPassword,
+  EmailAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut as fbSignOut,
@@ -27,7 +29,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
-  updatePassword: (newPassword: string) => Promise<void>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -105,10 +107,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function updatePassword(newPassword: string) {
-    if (!auth?.currentUser) throw new Error("로그인이 필요해요.");
+  async function updatePassword(currentPassword: string, newPassword: string) {
+    const current = auth?.currentUser;
+    if (!current || !current.email) throw new Error("로그인이 필요해요.");
+
+    // 1) 현재 비밀번호로 재인증
     try {
-      await fbUpdatePassword(auth.currentUser, newPassword);
+      const cred = EmailAuthProvider.credential(current.email, currentPassword);
+      await reauthenticateWithCredential(current, cred);
+    } catch (e) {
+      const raw =
+        typeof e === "object" && e !== null && "code" in e
+          ? String((e as { code: string }).code).toLowerCase()
+          : "";
+      if (
+        raw.includes("wrong-password") ||
+        raw.includes("invalid-credential") ||
+        raw.includes("invalid-login")
+      ) {
+        throw new Error("현재 비밀번호가 올바르지 않아요.");
+      }
+      throw friendlyAuthError(e);
+    }
+
+    // 2) 새 비밀번호로 변경
+    try {
+      await fbUpdatePassword(current, newPassword);
     } catch (e) {
       throw friendlyAuthError(e);
     }

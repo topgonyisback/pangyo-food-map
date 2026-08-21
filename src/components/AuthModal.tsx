@@ -16,6 +16,7 @@ export default function AuthModal({ initialMode = "signin", onClose }: AuthModal
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [nickname, setNickname] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -36,8 +37,11 @@ export default function AuthModal({ initialMode = "signin", onClose }: AuthModal
         await sendPasswordReset(email.trim());
         setInfo("재설정 링크를 이메일로 보냈어요. 메일함(스팸함 포함)을 확인해주세요.");
       } else if (mode === "newpassword") {
-        if (password.length < 6) throw new Error("비밀번호는 6자 이상이어야 해요.");
-        await updatePassword(password);
+        if (currentPassword.length === 0) throw new Error("현재 비밀번호를 입력해주세요.");
+        if (password.length < 6) throw new Error("새 비밀번호는 6자 이상이어야 해요.");
+        if (password === currentPassword)
+          throw new Error("새 비밀번호가 현재 비밀번호와 같아요.");
+        await updatePassword(currentPassword, password);
         setInfo("비밀번호가 변경됐어요.");
         setTimeout(onClose, 900);
       }
@@ -55,12 +59,10 @@ export default function AuthModal({ initialMode = "signin", onClose }: AuthModal
     newpassword: "비밀번호 변경",
   };
 
-  const canClose = mode !== "newpassword"; // 재설정 진입 시엔 배경 클릭 닫기 방지
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={canClose ? onClose : undefined}
+      onClick={onClose}
     >
       <div
         className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
@@ -68,16 +70,14 @@ export default function AuthModal({ initialMode = "signin", onClose }: AuthModal
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-900">{titles[mode]}</h2>
-          {canClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-              aria-label="닫기"
-            >
-              ✕
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            aria-label="닫기"
+          >
+            ✕
+          </button>
         </div>
 
         <div className="space-y-3">
@@ -101,6 +101,19 @@ export default function AuthModal({ initialMode = "signin", onClose }: AuthModal
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+              />
+            </div>
+          )}
+
+          {mode === "newpassword" && (
+            <div>
+              <label className="mb-1 block text-xs text-gray-500">현재 비밀번호</label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="현재 비밀번호"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
               />
             </div>
