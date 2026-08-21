@@ -62,9 +62,9 @@ export default function ListPanel({
   const showDetail = selectedPlace && (category === ALL || selectedPlace.category === category);
 
   return (
-    <div className="pointer-events-none absolute inset-x-2 top-16 bottom-2 z-10 flex gap-2 overflow-x-auto sm:inset-x-auto sm:left-3">
+    <div className="pointer-events-none absolute inset-x-2 top-16 z-10 flex items-start gap-2 overflow-x-auto sm:inset-x-auto sm:left-3">
       {/* 1단: 카테고리 LNB */}
-      <div className="pointer-events-auto flex h-full w-20 shrink-0 flex-col overflow-y-auto rounded-2xl bg-white/95 py-1.5 shadow-lg ring-1 ring-black/5 backdrop-blur sm:w-28">
+      <div className="pointer-events-auto flex max-h-[calc(100dvh-5rem)] w-20 shrink-0 flex-col overflow-y-auto rounded-2xl bg-white/95 py-1.5 shadow-lg ring-1 ring-black/5 backdrop-blur sm:w-28">
         {categories.map((cat) => {
           const active = cat === category;
           return (
@@ -85,7 +85,7 @@ export default function ListPanel({
       </div>
 
       {/* 2단: 가게 목록 */}
-      <div className="pointer-events-auto flex h-full w-56 shrink-0 flex-col overflow-y-auto rounded-2xl bg-white/95 p-2 shadow-lg ring-1 ring-black/5 backdrop-blur sm:w-64">
+      <div className="pointer-events-auto flex max-h-[calc(100dvh-5rem)] w-56 shrink-0 flex-col overflow-y-auto rounded-2xl bg-white/95 p-2 shadow-lg ring-1 ring-black/5 backdrop-blur sm:w-64">
         <p className="px-1 pb-1 text-xs font-semibold text-gray-400">
           {category} · {filtered.length}곳
         </p>
@@ -131,7 +131,7 @@ export default function ListPanel({
 
       {/* 3단: 상세 + 평가 */}
       {showDetail && selectedPlace && (
-        <div className="pointer-events-auto h-full w-[20rem] shrink-0 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-black/5 sm:w-96">
+        <div className="pointer-events-auto max-h-[calc(100dvh-5rem)] w-[20rem] shrink-0 overflow-y-auto rounded-2xl bg-white shadow-xl ring-1 ring-black/5 sm:w-96">
           <PlaceCard
             place={selectedPlace}
             reviews={reviews.filter((r) => r.placeId === selectedPlace.id)}
