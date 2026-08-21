@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import MapView from "@/components/MapView";
-import ListView from "@/components/ListView";
+import ListPanel from "@/components/ListPanel";
 import PickView from "@/components/PickView";
 import AccountMenu from "@/components/AccountMenu";
 import AuthModal, { AuthMode } from "@/components/AuthModal";
@@ -67,9 +67,11 @@ function HomeInner() {
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      {/* 전체 화면 콘텐츠 */}
+      {/* 전체 화면 콘텐츠 (지도/리스트는 같은 지도 배경 공유) */}
       <div className="absolute inset-0">
-        {!hydrated ? null : view === "map" ? (
+        {!hydrated ? null : view === "pick" ? (
+          <PickView places={places} reviews={reviews} onGoToPlace={goToPlaceOnMap} />
+        ) : (
           <MapView
             places={places}
             reviews={reviews}
@@ -85,24 +87,27 @@ function HomeInner() {
             onUpdatePlaceLocation={updatePlaceLocation}
             onUpdatePlace={updatePlace}
             onRequireLogin={requireLogin}
+            renderCard={view === "map"}
+            centerOnSelect={view === "list"}
           />
-        ) : view === "list" ? (
-          <ListView
-            places={places}
-            reviews={reviews}
-            onAddReview={addReview}
-            onUpdateReview={updateReview}
-            onDeleteReview={deleteReview}
-            selectedPlaceId={selectedPlaceId}
-            onSelectPlace={setSelectedPlaceId}
-            onEditLocation={startEditingLocation}
-            onUpdatePlace={updatePlace}
-            onRequireLogin={requireLogin}
-          />
-        ) : (
-          <PickView places={places} reviews={reviews} onGoToPlace={goToPlaceOnMap} />
         )}
       </div>
+
+      {/* 리스트 뷰: 지도 위에 카테고리·목록·상세 3단 패널 */}
+      {hydrated && view === "list" && !pinMode && (
+        <ListPanel
+          places={places}
+          reviews={reviews}
+          selectedPlaceId={selectedPlaceId}
+          onSelectPlace={setSelectedPlaceId}
+          onAddReview={addReview}
+          onUpdateReview={updateReview}
+          onDeleteReview={deleteReview}
+          onEditLocation={startEditingLocation}
+          onUpdatePlace={updatePlace}
+          onRequireLogin={requireLogin}
+        />
+      )}
 
       {/* 플로팅 상단 컨트롤 (메뉴 + 계정 = 하나의 덩어리) — 핀 편집 중엔 숨김 */}
       <div

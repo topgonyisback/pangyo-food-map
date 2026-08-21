@@ -33,6 +33,8 @@ interface MapViewProps {
     patch: Partial<Pick<Place, "name" | "category" | "naverMapUrl">>
   ) => void;
   onRequireLogin: () => void;
+  renderCard?: boolean;
+  centerOnSelect?: boolean;
 }
 
 export default function MapView({
@@ -50,6 +52,8 @@ export default function MapView({
   onUpdatePlaceLocation,
   onUpdatePlace,
   onRequireLogin,
+  renderCard = true,
+  centerOnSelect = false,
 }: MapViewProps) {
   const status = useNaverMapsScript();
   const mapDivRef = useRef<HTMLDivElement>(null);
@@ -126,6 +130,15 @@ export default function MapView({
   }, [status, pendingLocation]);
 
   const selectedPlace = places.find((p) => p.id === selectedPlaceId) ?? null;
+
+  // 리스트에서 가게 선택 시 지도를 그 위치로 이동
+  useEffect(() => {
+    if (!centerOnSelect || status !== "loaded" || !mapRef.current || !selectedPlace) return;
+    mapRef.current.setCenter(
+      new window.naver.maps.LatLng(selectedPlace.lat, selectedPlace.lng)
+    );
+  }, [centerOnSelect, status, selectedPlace]);
+
   const editingPlace =
     pinMode?.type === "edit" ? places.find((p) => p.id === pinMode.placeId) ?? null : null;
   const categorySuggestions = Array.from(new Set(places.map((p) => p.category)));
@@ -230,7 +243,7 @@ export default function MapView({
         </div>
       )}
 
-      {!pinMode && selectedPlace && (
+      {renderCard && !pinMode && selectedPlace && (
         <div className="absolute inset-y-0 right-0 z-30 w-full max-w-sm shadow-xl sm:m-3 sm:rounded-xl">
           <PlaceCard
             place={selectedPlace}
