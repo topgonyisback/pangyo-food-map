@@ -118,7 +118,7 @@ export default function PickView({
     : null;
 
   return (
-    <div className="absolute inset-x-2 top-16 bottom-2 z-10 flex flex-col overflow-y-auto rounded-2xl bg-white/95 p-4 shadow-lg ring-1 ring-black/5 backdrop-blur sm:inset-x-auto sm:left-3 sm:w-96">
+    <div className="absolute inset-x-2 top-16 z-10 flex max-h-[calc(100%-4.5rem)] flex-col overflow-y-auto rounded-2xl bg-white/95 p-4 shadow-lg ring-1 ring-black/5 backdrop-blur sm:inset-x-auto sm:left-3 sm:w-96">
       <h2 className="mb-1 text-xl font-bold text-gray-900">오늘 뭐먹지? 🎲</h2>
       <p className="mb-4 text-sm text-gray-500">조건을 고르고 버튼을 누르면 랜덤으로 골라드려요.</p>
 
@@ -177,87 +177,7 @@ export default function PickView({
         <p className="pt-0.5 text-xs text-gray-400">후보 {candidates.length}곳</p>
       </div>
 
-      {/* 결과 / 슬롯 영역 */}
-      <div
-        ref={stageRef}
-        className="mb-4 flex min-h-[240px] flex-1 items-center justify-center overflow-hidden rounded-xl bg-white p-4 shadow-sm"
-      >
-        {candidates.length === 0 ? (
-          <p className="text-center text-sm text-gray-400">
-            조건에 맞는 가게가 없어요.
-            <br />
-            필터를 바꾸거나 가게를 먼저 등록해보세요.
-          </p>
-        ) : phase === "idle" ? (
-          <p className="text-center text-sm text-gray-400">
-            아래 버튼을 눌러 오늘의 점심을 뽑아보세요!
-          </p>
-        ) : phase === "spinning" ? (
-          // 슬롯 릴 (세로로 감속하며 멈춤)
-          <div
-            className="relative w-full overflow-hidden"
-            style={{ height: ITEM_H }}
-          >
-            <motion.div
-              key={spinKey}
-              initial={{ y: 0 }}
-              animate={{ y: -(reel.length - 1) * ITEM_H }}
-              transition={{ duration: 2.4, ease: [0.12, 0.7, 0.1, 1] }}
-              onAnimationComplete={() => finish(reel[reel.length - 1])}
-            >
-              {reel.map((p, i) => (
-                <div
-                  key={i}
-                  className="flex flex-col items-center justify-center"
-                  style={{ height: ITEM_H }}
-                >
-                  <span className="mb-1 text-base font-medium text-blue-500">{p.category}</span>
-                  <span className="text-4xl font-extrabold text-gray-800">{p.name}</span>
-                </div>
-              ))}
-            </motion.div>
-            {/* 가운데 강조 라인 */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gray-100" />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gray-100" />
-          </div>
-        ) : resultPlace ? (
-          <motion.div
-            initial={{ scale: 0.6, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 320, damping: 18 }}
-            className="w-full text-center"
-          >
-            <p className="mb-1 text-sm font-medium text-blue-600">{resultPlace.category}</p>
-            <p className="mb-2.5 text-4xl font-extrabold text-gray-900">{resultPlace.name}</p>
-            <span
-              className="inline-block whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-semibold text-white"
-              style={{ backgroundColor: scoreToColor(resultScore) }}
-            >
-              {scoreToLabel(resultScore)}
-            </span>
-
-            <div className="mt-4 space-y-2">
-              <a
-                href={resultPlace.naverMapUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1 rounded-lg bg-green-500 px-3 py-2 text-sm font-semibold text-white hover:bg-green-600"
-              >
-                네이버지도에서 보기 ↗
-              </a>
-              <button
-                type="button"
-                onClick={() => onGoToPlace(resultPlace.id)}
-                className="flex w-full items-center justify-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
-              >
-                지도에서 보기 · 평가하기
-              </button>
-            </div>
-          </motion.div>
-        ) : null}
-      </div>
-
-      {/* 뽑기 버튼 */}
+      {/* 뽑기 버튼 (필터 바로 아래) */}
       <motion.button
         type="button"
         onClick={handlePick}
@@ -271,6 +191,82 @@ export default function PickView({
             ? "다시 뽑기 🎲"
             : "오늘의 점심 뽑기 🎲"}
       </motion.button>
+
+      {candidates.length === 0 && (
+        <p className="mt-3 text-center text-sm text-gray-400">
+          조건에 맞는 가게가 없어요. 필터를 바꾸거나 가게를 먼저 등록해보세요.
+        </p>
+      )}
+
+      {/* 결과 / 슬롯 — 버튼을 누른 뒤에만 하단에 등장 */}
+      {phase !== "idle" && (
+        <div
+          ref={stageRef}
+          className="mt-4 flex min-h-[200px] items-center justify-center overflow-hidden rounded-xl bg-white p-4 shadow-sm"
+        >
+          {phase === "spinning" ? (
+            // 슬롯 릴 (세로로 감속하며 멈춤)
+            <div className="relative w-full overflow-hidden" style={{ height: ITEM_H }}>
+              <motion.div
+                key={spinKey}
+                initial={{ y: 0 }}
+                animate={{ y: -(reel.length - 1) * ITEM_H }}
+                transition={{ duration: 2.4, ease: [0.12, 0.7, 0.1, 1] }}
+                onAnimationComplete={() => finish(reel[reel.length - 1])}
+              >
+                {reel.map((p, i) => (
+                  <div
+                    key={i}
+                    className="flex flex-col items-center justify-center"
+                    style={{ height: ITEM_H }}
+                  >
+                    <span className="mb-1 text-base font-medium text-blue-500">
+                      {p.category}
+                    </span>
+                    <span className="text-4xl font-extrabold text-gray-800">{p.name}</span>
+                  </div>
+                ))}
+              </motion.div>
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gray-100" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gray-100" />
+            </div>
+          ) : resultPlace ? (
+            <motion.div
+              initial={{ scale: 0.6, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 320, damping: 18 }}
+              className="w-full text-center"
+            >
+              <p className="mb-1 text-sm font-medium text-blue-600">{resultPlace.category}</p>
+              <p className="mb-2.5 text-4xl font-extrabold text-gray-900">{resultPlace.name}</p>
+              <span
+                className="inline-block whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-semibold text-white"
+                style={{ backgroundColor: scoreToColor(resultScore) }}
+              >
+                {scoreToLabel(resultScore)}
+              </span>
+
+              <div className="mt-4 space-y-2">
+                <a
+                  href={resultPlace.naverMapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1 rounded-lg bg-green-500 px-3 py-2 text-sm font-semibold text-white hover:bg-green-600"
+                >
+                  네이버지도에서 보기 ↗
+                </a>
+                <button
+                  type="button"
+                  onClick={() => onGoToPlace(resultPlace.id)}
+                  className="flex w-full items-center justify-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                >
+                  지도에서 보기 · 평가하기
+                </button>
+              </div>
+            </motion.div>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
