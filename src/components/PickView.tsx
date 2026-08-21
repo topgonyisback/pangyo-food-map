@@ -8,11 +8,17 @@ interface PickViewProps {
   places: Place[];
   reviews: Review[];
   onGoToPlace: (placeId: string) => void;
+  onSelectPlace: (placeId: string | null) => void;
 }
 
 type Phase = "idle" | "spinning" | "result";
 
-export default function PickView({ places, reviews, onGoToPlace }: PickViewProps) {
+export default function PickView({
+  places,
+  reviews,
+  onGoToPlace,
+  onSelectPlace,
+}: PickViewProps) {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [excludeBad, setExcludeBad] = useState(true);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -78,6 +84,8 @@ export default function PickView({ places, reviews, onGoToPlace }: PickViewProps
         setResultId(final.id);
         setPhase("result");
         lastPickedRef.current = final.id;
+        onSelectPlace(final.id); // 지도를 뽑힌 가게 위치로 이동
+
       }
     }, 70);
   }
@@ -89,7 +97,7 @@ export default function PickView({ places, reviews, onGoToPlace }: PickViewProps
     : null;
 
   return (
-    <div className="flex h-full w-full flex-col overflow-y-auto bg-gray-50 p-4 pt-16">
+    <div className="absolute inset-x-2 top-16 bottom-2 z-10 flex flex-col overflow-y-auto rounded-2xl bg-white/95 p-4 shadow-lg ring-1 ring-black/5 backdrop-blur sm:inset-x-auto sm:left-3 sm:w-96">
       <h2 className="mb-1 text-xl font-bold text-gray-900">오늘 뭐먹지? 🎲</h2>
       <p className="mb-4 text-sm text-gray-500">
         조건을 고르고 버튼을 누르면 랜덤으로 골라드려요.

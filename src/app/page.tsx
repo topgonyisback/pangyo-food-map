@@ -67,11 +67,9 @@ function HomeInner() {
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      {/* 전체 화면 콘텐츠 (지도/리스트는 같은 지도 배경 공유) */}
+      {/* 전체 화면 지도 배경 (지도/리스트/뭐먹지 공통) */}
       <div className="absolute inset-0">
-        {!hydrated ? null : view === "pick" ? (
-          <PickView places={places} reviews={reviews} onGoToPlace={goToPlaceOnMap} />
-        ) : (
+        {!hydrated ? null : (
           <MapView
             places={places}
             reviews={reviews}
@@ -88,7 +86,7 @@ function HomeInner() {
             onUpdatePlace={updatePlace}
             onRequireLogin={requireLogin}
             renderCard={view === "map"}
-            centerOnSelect={view === "list"}
+            centerOnSelect={view !== "map"}
           />
         )}
       </div>
@@ -106,6 +104,16 @@ function HomeInner() {
           onEditLocation={startEditingLocation}
           onUpdatePlace={updatePlace}
           onRequireLogin={requireLogin}
+        />
+      )}
+
+      {/* 오늘 뭐먹지 뷰: 지도 위에 조건·뽑기 패널 */}
+      {hydrated && view === "pick" && !pinMode && (
+        <PickView
+          places={places}
+          reviews={reviews}
+          onGoToPlace={goToPlaceOnMap}
+          onSelectPlace={setSelectedPlaceId}
         />
       )}
 
