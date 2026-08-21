@@ -15,7 +15,7 @@ interface PickViewProps {
 
 type Phase = "idle" | "spinning" | "result";
 
-const ITEM_H = 116; // 릴 한 칸 높이(px)
+const ITEM_H = 150; // 릴 한 칸 높이(px)
 const REEL_LEN = 26; // 스핀 동안 지나가는 칸 수
 
 export default function PickView({
@@ -123,42 +123,58 @@ export default function PickView({
       <p className="mb-4 text-sm text-gray-500">조건을 고르고 버튼을 누르면 랜덤으로 골라드려요.</p>
 
       {/* 필터 */}
-      <div className="mb-4 space-y-3 rounded-xl bg-white p-3 shadow-sm">
+      <div className="mb-4 space-y-3 rounded-2xl bg-white p-3.5 shadow-sm">
         <div>
-          <p className="mb-1.5 text-xs font-medium text-gray-500">카테고리 (없으면 전체)</p>
-          <div className="flex flex-wrap gap-1.5">
-            {allCategories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => toggleCategory(cat)}
-                className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                  selectedCategories.includes(cat)
-                    ? "border-orange-500 bg-orange-500 text-white"
-                    : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+          <p className="mb-2 text-xs font-semibold text-gray-500">카테고리 (안 고르면 전체)</p>
+          <div className="flex flex-wrap gap-2">
+            {allCategories.map((cat) => {
+              const on = selectedCategories.includes(cat);
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => toggleCategory(cat)}
+                  className={`inline-flex items-center gap-1 rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${
+                    on
+                      ? "border-orange-500 bg-orange-500 text-white shadow-sm"
+                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  {on && <span className="text-[11px]">✓</span>}
+                  {cat}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <input
-            type="checkbox"
-            checked={excludeBad}
-            onChange={(e) => {
-              setExcludeBad(e.target.checked);
+        <div>
+          <p className="mb-2 text-xs font-semibold text-gray-500">옵션</p>
+          <button
+            type="button"
+            onClick={() => {
+              setExcludeBad((v) => !v);
               setPhase("idle");
               setResultId(null);
             }}
-            className="h-4 w-4"
-          />
-          &apos;별로예요&apos; 평가받은 곳 제외
-        </label>
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${
+              excludeBad
+                ? "border-orange-500 bg-orange-500 text-white shadow-sm"
+                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            <span
+              className={`grid h-4 w-4 place-items-center rounded-md text-[11px] ${
+                excludeBad ? "bg-white/25" : "border border-gray-300"
+              }`}
+            >
+              {excludeBad ? "✓" : ""}
+            </span>
+            &apos;별로예요&apos; 제외
+          </button>
+        </div>
 
-        <p className="text-xs text-gray-400">후보 {candidates.length}곳</p>
+        <p className="pt-0.5 text-xs text-gray-400">후보 {candidates.length}곳</p>
       </div>
 
       {/* 결과 / 슬롯 영역 */}
@@ -195,8 +211,8 @@ export default function PickView({
                   className="flex flex-col items-center justify-center"
                   style={{ height: ITEM_H }}
                 >
-                  <span className="mb-0.5 text-sm font-medium text-blue-500">{p.category}</span>
-                  <span className="text-3xl font-extrabold text-gray-800">{p.name}</span>
+                  <span className="mb-1 text-base font-medium text-blue-500">{p.category}</span>
+                  <span className="text-4xl font-extrabold text-gray-800">{p.name}</span>
                 </div>
               ))}
             </motion.div>
@@ -211,10 +227,10 @@ export default function PickView({
             transition={{ type: "spring", stiffness: 320, damping: 18 }}
             className="w-full text-center"
           >
-            <p className="mb-1 text-xs font-medium text-blue-600">{resultPlace.category}</p>
-            <p className="mb-2 text-2xl font-bold text-gray-900">{resultPlace.name}</p>
+            <p className="mb-1 text-sm font-medium text-blue-600">{resultPlace.category}</p>
+            <p className="mb-2.5 text-4xl font-extrabold text-gray-900">{resultPlace.name}</p>
             <span
-              className="inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold text-white"
+              className="inline-block whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-semibold text-white"
               style={{ backgroundColor: scoreToColor(resultScore) }}
             >
               {scoreToLabel(resultScore)}

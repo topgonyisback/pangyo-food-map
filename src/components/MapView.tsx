@@ -145,10 +145,11 @@ export default function MapView({
 
   return (
     <div className="relative h-full w-full">
+      {/* 핀 모드에서 네이버 지도 손모양 커서를 십자 커서로 강제 (globals.css가 아닌 인라인으로 확실히 적용) */}
+      <style>{`.pin-cursor, .pin-cursor * { cursor: crosshair !important; }`}</style>
       <div
         ref={mapDivRef}
-        className="h-full w-full"
-        style={{ cursor: pinMode ? "crosshair" : undefined }}
+        className={`h-full w-full ${pinMode ? "pin-cursor" : ""}`}
       />
 
       {status === "missing-key" && (

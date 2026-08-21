@@ -23,3 +23,9 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* 가게 위치 선택(핀) 모드: 네이버 지도 기본 손모양 커서를 십자 커서로 강제 */
+.pin-cursor,
+.pin-cursor * {
+  cursor: crosshair !important;
+}
