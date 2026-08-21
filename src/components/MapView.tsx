@@ -13,6 +13,14 @@ interface MapViewProps {
   places: Place[];
   reviews: Review[];
   onAddReview: (review: Omit<Review, "id" | "createdAt">) => void;
+  onUpdateReview: (
+    reviewId: string,
+    patch: Pick<
+      Review,
+      "quickRating" | "atmosphereRating" | "restroomRating" | "freeComment" | "menuNotes"
+    >
+  ) => void;
+  onDeleteReview: (reviewId: string) => void;
   selectedPlaceId: string | null;
   onSelectPlace: (placeId: string | null) => void;
   pinMode: PinMode;
@@ -24,12 +32,15 @@ interface MapViewProps {
     placeId: string,
     patch: Partial<Pick<Place, "name" | "category" | "naverMapUrl">>
   ) => void;
+  onRequireLogin: () => void;
 }
 
 export default function MapView({
   places,
   reviews,
   onAddReview,
+  onUpdateReview,
+  onDeleteReview,
   selectedPlaceId,
   onSelectPlace,
   pinMode,
@@ -38,6 +49,7 @@ export default function MapView({
   onAddPlace,
   onUpdatePlaceLocation,
   onUpdatePlace,
+  onRequireLogin,
 }: MapViewProps) {
   const status = useNaverMapsScript();
   const mapDivRef = useRef<HTMLDivElement>(null);
@@ -219,14 +231,17 @@ export default function MapView({
       )}
 
       {!pinMode && selectedPlace && (
-        <div className="absolute inset-y-0 right-0 w-full max-w-sm shadow-xl sm:m-3 sm:rounded-xl">
+        <div className="absolute inset-y-0 right-0 z-30 w-full max-w-sm shadow-xl sm:m-3 sm:rounded-xl">
           <PlaceCard
             place={selectedPlace}
             reviews={reviews.filter((r) => r.placeId === selectedPlace.id)}
             onAddReview={onAddReview}
+            onUpdateReview={onUpdateReview}
+            onDeleteReview={onDeleteReview}
             onClose={() => onSelectPlace(null)}
             onEditLocation={() => onStartEditLocation(selectedPlace.id)}
             onUpdatePlace={onUpdatePlace}
+            onRequireLogin={onRequireLogin}
           />
         </div>
       )}

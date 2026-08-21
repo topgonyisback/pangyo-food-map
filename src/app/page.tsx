@@ -4,28 +4,45 @@ import { useState } from "react";
 import MapView from "@/components/MapView";
 import ListView from "@/components/ListView";
 import PickView from "@/components/PickView";
+import AccountMenu from "@/components/AccountMenu";
+import AuthModal, { AuthMode } from "@/components/AuthModal";
 import { usePlaces } from "@/hooks/usePlaces";
 import { useReviews } from "@/hooks/useReviews";
 import { useIsHydrated } from "@/hooks/useIsHydrated";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { PinMode } from "@/types";
 
 type ViewMode = "map" | "list" | "pick";
 
-const TABS: { id: ViewMode; label: string }[] = [
-  { id: "map", label: "지도" },
-  { id: "list", label: "리스트" },
-  { id: "pick", label: "오늘 뭐먹지?" },
+const TABS: { id: ViewMode; label: string; icon: string }[] = [
+  { id: "map", label: "지도", icon: "🗺️" },
+  { id: "list", label: "리스트", icon: "📋" },
+  { id: "pick", label: "오늘 뭐먹지?", icon: "🎲" },
 ];
 
 export default function Home() {
+  return (
+    <AuthProvider>
+      <HomeInner />
+    </AuthProvider>
+  );
+}
+
+function HomeInner() {
   const [view, setView] = useState<ViewMode>("map");
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [pinMode, setPinMode] = useState<PinMode>(null);
-  const { places, addPlace, updatePlaceLocation, updatePlace } = usePlaces();
-  const { reviews, addReview } = useReviews();
+  const [authModal, setAuthModal] = useState<AuthMode | null>(null);
+  const { places, addPlace, updatePlaceLocation, updatePlace, loadError } = usePlaces();
+  const { reviews, addReview, updateReview, deleteReview } = useReviews();
   const hydrated = useIsHydrated();
+  const { user } = useAuth();
 
   function startAddingPlace() {
+    if (!user) {
+      setAuthModal("signin");
+      return;
+    }
     setSelectedPlaceId(null);
     setView("map");
     setPinMode({ type: "add" });
@@ -41,32 +58,24 @@ export default function Home() {
     setSelectedPlaceId(placeId);
   }
 
-  return (
-    <div className="flex h-full flex-col">
-      <header className="flex items-center justify-between gap-2 border-b border-gray-200 bg-white px-4 py-2.5">
-        <h1 className="shrink-0 text-base font-bold text-gray-900">🍚 판교 점심 지도</h1>
-        <div className="flex overflow-hidden rounded-full border border-gray-200">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setView(tab.id)}
-              className={`whitespace-nowrap px-3 py-1.5 text-sm font-medium ${
-                view === tab.id ? "bg-blue-600 text-white" : "bg-white text-gray-600"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </header>
+  function handleTabChange(next: ViewMode) {
+    setView(next);
+    setSelectedPlaceId(null);
+  }
 
-      <main className="relative flex-1 overflow-hidden">
+  const requireLogin = () => setAuthModal("signin");
+
+  return (
+    <div className="relative h-full w-full overflow-hidden">
+      {/* 전체 화면 콘텐츠 */}
+      <div className="absolute inset-0">
         {!hydrated ? null : view === "map" ? (
           <MapView
             places={places}
             reviews={reviews}
             onAddReview={addReview}
+            onUpdateReview={updateReview}
+            onDeleteReview={deleteReview}
             selectedPlaceId={selectedPlaceId}
             onSelectPlace={setSelectedPlaceId}
             pinMode={pinMode}
@@ -75,32 +84,92 @@ export default function Home() {
             onAddPlace={addPlace}
             onUpdatePlaceLocation={updatePlaceLocation}
             onUpdatePlace={updatePlace}
+            onRequireLogin={requireLogin}
           />
         ) : view === "list" ? (
           <ListView
             places={places}
             reviews={reviews}
             onAddReview={addReview}
+            onUpdateReview={updateReview}
+            onDeleteReview={deleteReview}
             selectedPlaceId={selectedPlaceId}
             onSelectPlace={setSelectedPlaceId}
             onEditLocation={startEditingLocation}
             onUpdatePlace={updatePlace}
+            onRequireLogin={requireLogin}
           />
         ) : (
           <PickView places={places} reviews={reviews} onGoToPlace={goToPlaceOnMap} />
         )}
+      </div>
 
-        {hydrated && !pinMode && view !== "pick" && (
-          <button
-            type="button"
-            onClick={startAddingPlace}
-            className="absolute bottom-5 right-5 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-2xl text-white shadow-lg hover:bg-blue-700"
-            aria-label="새 가게 추가"
-          >
-            +
-          </button>
-        )}
-      </main>
+      {/* 플로팅 상단 컨트롤 (메뉴 + 계정 = 하나의 덩어리) — 핀 편집 중엔 숨김 */}
+      <div
+        className={`pointer-events-none absolute inset-x-2 top-2 z-20 flex justify-center sm:justify-start sm:px-1 ${
+          pinMode ? "hidden" : ""
+        }`}
+      >
+        <div className="pointer-events-auto flex max-w-full items-center gap-1.5 rounded-2xl bg-white/90 p-1.5 shadow-lg ring-1 ring-black/5 backdrop-blur">
+          <nav className="flex gap-1">
+            {TABS.map((tab) => {
+              const active = view === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-2.5 py-1.5 text-sm font-semibold transition ${
+                    active
+                      ? "bg-orange-500 text-white shadow-sm"
+                      : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                  }`}
+                >
+                  <span className="text-[15px] leading-none">{tab.icon}</span>
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+          <div className="h-5 w-px shrink-0 bg-gray-200" />
+          <AccountMenu
+            onLogin={() => setAuthModal("signin")}
+            onChangePassword={() => setAuthModal("newpassword")}
+          />
+        </div>
+      </div>
+
+      {/* 데이터 로드 실패 안내 배너 */}
+      {hydrated && loadError && (
+        <div className="pointer-events-none absolute inset-x-0 top-16 z-20 flex justify-center px-3">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-xl bg-red-500 px-4 py-2 text-sm text-white shadow-lg">
+            <span>데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</span>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="shrink-0 rounded-lg bg-white/20 px-2 py-0.5 text-xs font-semibold hover:bg-white/30"
+            >
+              새로고침
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 새 가게 추가 플로팅 버튼 */}
+      {hydrated && !pinMode && view !== "pick" && (
+        <button
+          type="button"
+          onClick={startAddingPlace}
+          className="absolute bottom-5 right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-2xl text-white shadow-lg hover:bg-blue-700"
+          aria-label="새 가게 추가"
+        >
+          +
+        </button>
+      )}
+
+      {authModal && (
+        <AuthModal initialMode={authModal} onClose={() => setAuthModal(null)} />
+      )}
     </div>
   );
 }

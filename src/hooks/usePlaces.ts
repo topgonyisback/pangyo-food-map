@@ -7,6 +7,7 @@ import { fetchPlaces, insertPlace, updatePlaceRow } from "@/lib/db";
 export function usePlaces() {
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -14,7 +15,10 @@ export function usePlaces() {
       .then((rows) => {
         if (active) setPlaces(rows);
       })
-      .catch((e) => console.error("가게 불러오기 실패:", e))
+      .catch((e) => {
+        console.error("가게 불러오기 실패:", e);
+        if (active) setLoadError(true);
+      })
       .finally(() => {
         if (active) setLoading(false);
       });
@@ -42,5 +46,5 @@ export function usePlaces() {
     updatePlaceRow(placeId, patch).catch((e) => console.error("정보 저장 실패:", e));
   }
 
-  return { places, addPlace, updatePlaceLocation, updatePlace, loading };
+  return { places, addPlace, updatePlaceLocation, updatePlace, loading, loadError };
 }

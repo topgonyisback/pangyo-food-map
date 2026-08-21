@@ -89,7 +89,7 @@ export default function PickView({ places, reviews, onGoToPlace }: PickViewProps
     : null;
 
   return (
-    <div className="flex h-full w-full flex-col overflow-y-auto bg-gray-50 p-4">
+    <div className="flex h-full w-full flex-col overflow-y-auto bg-gray-50 p-4 pt-16">
       <h2 className="mb-1 text-xl font-bold text-gray-900">오늘 뭐먹지? 🎲</h2>
       <p className="mb-4 text-sm text-gray-500">
         조건을 고르고 버튼을 누르면 랜덤으로 골라드려요.

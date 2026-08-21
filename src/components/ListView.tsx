@@ -8,6 +8,14 @@ interface ListViewProps {
   places: Place[];
   reviews: Review[];
   onAddReview: (review: Omit<Review, "id" | "createdAt">) => void;
+  onUpdateReview: (
+    reviewId: string,
+    patch: Pick<
+      Review,
+      "quickRating" | "atmosphereRating" | "restroomRating" | "freeComment" | "menuNotes"
+    >
+  ) => void;
+  onDeleteReview: (reviewId: string) => void;
   selectedPlaceId: string | null;
   onSelectPlace: (placeId: string | null) => void;
   onEditLocation: (placeId: string) => void;
@@ -15,16 +23,20 @@ interface ListViewProps {
     placeId: string,
     patch: Partial<Pick<Place, "name" | "category" | "naverMapUrl">>
   ) => void;
+  onRequireLogin: () => void;
 }
 
 export default function ListView({
   places,
   reviews,
   onAddReview,
+  onUpdateReview,
+  onDeleteReview,
   selectedPlaceId,
   onSelectPlace,
   onEditLocation,
   onUpdatePlace,
+  onRequireLogin,
 }: ListViewProps) {
   const sorted = [...places].sort((a, b) => {
     const scoreA = averageQuickRating(reviews.filter((r) => r.placeId === a.id)) ?? -1;
@@ -35,7 +47,7 @@ export default function ListView({
   const selectedPlace = places.find((p) => p.id === selectedPlaceId) ?? null;
 
   return (
-    <div className="relative h-full w-full overflow-y-auto bg-gray-50 p-3">
+    <div className="relative h-full w-full overflow-y-auto bg-gray-50 p-3 pt-16">
       <ul className="space-y-2">
         {sorted.map((place) => {
           const placeReviews = reviews.filter((r) => r.placeId === place.id);
@@ -65,15 +77,18 @@ export default function ListView({
       </ul>
 
       {selectedPlace && (
-        <div className="fixed inset-0 z-10 flex justify-end bg-black/30">
+        <div className="fixed inset-0 z-30 flex justify-end bg-black/30">
           <div className="h-full w-full max-w-sm shadow-xl">
             <PlaceCard
               place={selectedPlace}
               reviews={reviews.filter((r) => r.placeId === selectedPlace.id)}
               onAddReview={onAddReview}
+              onUpdateReview={onUpdateReview}
+              onDeleteReview={onDeleteReview}
               onClose={() => onSelectPlace(null)}
               onEditLocation={() => onEditLocation(selectedPlace.id)}
               onUpdatePlace={onUpdatePlace}
+              onRequireLogin={onRequireLogin}
             />
           </div>
         </div>

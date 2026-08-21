@@ -9,6 +9,7 @@ export interface Place {
   lat: number;
   lng: number;
   naverMapUrl: string;
+  userId?: string | null;
 }
 
 export interface MenuNote {
@@ -26,6 +27,7 @@ export interface Review {
   freeComment?: string;
   menuNotes: MenuNote[];
   createdAt: string;
+  userId?: string | null;
 }
 
 export const THREE_TIER_LABEL: Record<ThreeTier, string> = {
