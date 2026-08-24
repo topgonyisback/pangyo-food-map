@@ -15,7 +15,6 @@ import { PRESET_CATEGORIES } from "@/lib/categories";
 import {
   averageQuickRating,
   ratingDistribution,
-  scoreToColor,
   scoreToFiveText,
   tierToColor,
 } from "@/lib/rating";
@@ -312,10 +311,7 @@ export default function PlaceCard({
       {dist.total > 0 && (
         <div className="border-b border-gray-100 px-4 py-3">
           <div className="mb-2 flex items-baseline gap-2">
-            <span
-              className="text-2xl font-extrabold"
-              style={{ color: scoreToColor(score) }}
-            >
+            <span className="text-2xl font-extrabold text-gray-900">
               {scoreToFiveText(score)}
             </span>
             <span className="text-xs text-gray-400">/ 5점 · 평가 {dist.total}건</span>
@@ -393,14 +389,26 @@ export default function PlaceCard({
           </div>
         ) : (
           <>
-            <a
-              href={place.naverMapUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mb-2 flex items-center justify-center gap-1 rounded-lg bg-green-500 px-3 py-2 text-sm font-semibold text-white hover:bg-green-600"
-            >
-              네이버지도에서 보기 ↗
-            </a>
+            {/* 네이버지도 + 평가남기기 (로그아웃 시 한 줄 2개) */}
+            <div className={`mb-2 gap-2 ${user ? "flex" : "grid grid-cols-2"}`}>
+              <a
+                href={place.naverMapUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-green-500 px-3 py-2 text-sm font-semibold text-white hover:bg-green-600"
+              >
+                네이버지도
+              </a>
+              {!user && (
+                <button
+                  type="button"
+                  onClick={onRequireLogin}
+                  className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100"
+                >
+                  평가남기기
+                </button>
+              )}
+            </div>
 
             {isOwnPlace && (
               <div className="mb-4 flex gap-2">
@@ -423,8 +431,8 @@ export default function PlaceCard({
           </>
         )}
 
-        {/* 평가 작성 */}
-        {user ? (
+        {/* 평가 작성 (로그인 시 폼) */}
+        {user && (
           <div className="mb-4 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
             <p className="text-xs text-gray-500">
               작성자: <span className="font-medium text-gray-700">{nickname ?? "…"}</span>
@@ -439,14 +447,6 @@ export default function PlaceCard({
               평가 등록
             </button>
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={onRequireLogin}
-            className="mb-4 w-full rounded-lg border border-blue-300 bg-blue-50 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-100"
-          >
-            로그인하고 평가 남기기
-          </button>
         )}
 
         <div>
