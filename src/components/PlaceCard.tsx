@@ -12,6 +12,12 @@ import {
   ThreeTier,
 } from "@/types";
 import { PRESET_CATEGORIES } from "@/lib/categories";
+import {
+  averageQuickRating,
+  ratingDistribution,
+  scoreToColor,
+  scoreToFiveText,
+} from "@/lib/rating";
 import { useAuth } from "@/hooks/useAuth";
 
 const TIERS: ThreeTier[] = ["bad", "soso", "good"];
@@ -278,6 +284,12 @@ export default function PlaceCard({
     setEditingReviewId(null);
   }
 
+  const score = averageQuickRating(reviews);
+  const dist = ratingDistribution(reviews);
+  const goodPct = dist.total ? (dist.good / dist.total) * 100 : 0;
+  const sosoPct = dist.total ? (dist.soso / dist.total) * 100 : 0;
+  const badPct = dist.total ? (dist.bad / dist.total) * 100 : 0;
+
   return (
     <div className="flex h-full flex-col bg-white">
       <div className="flex items-start justify-between border-b border-gray-100 p-4">
@@ -294,6 +306,37 @@ export default function PlaceCard({
           ✕
         </button>
       </div>
+
+      {/* 종합평가 요약: 5점 + 분포 막대바 */}
+      {dist.total > 0 && (
+        <div className="border-b border-gray-100 px-4 py-3">
+          <div className="mb-2 flex items-baseline gap-2">
+            <span
+              className="text-2xl font-extrabold"
+              style={{ color: scoreToColor(score) }}
+            >
+              {scoreToFiveText(score)}
+            </span>
+            <span className="text-xs text-gray-400">/ 5점 · 평가 {dist.total}건</span>
+          </div>
+          <div className="mb-1.5 flex h-2 overflow-hidden rounded-full bg-gray-100">
+            <div style={{ width: `${goodPct}%`, backgroundColor: "#22C55E" }} />
+            <div style={{ width: `${sosoPct}%`, backgroundColor: "#F59E0B" }} />
+            <div style={{ width: `${badPct}%`, backgroundColor: "#EF4444" }} />
+          </div>
+          <div className="flex gap-3 text-[11px] text-gray-500">
+            <span>
+              <span className="text-green-500">●</span> 맛있어요 {dist.good}
+            </span>
+            <span>
+              <span className="text-amber-500">●</span> 쏘쏘 {dist.soso}
+            </span>
+            <span>
+              <span className="text-red-500">●</span> 별로 {dist.bad}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-4">
         {isEditingInfo ? (

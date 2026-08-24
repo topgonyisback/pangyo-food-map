@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Place, Review } from "@/types";
-import { averageQuickRating, scoreToColor, scoreToLabel } from "@/lib/rating";
+import { averageQuickRating, scoreToColor, scoreToFiveText } from "@/lib/rating";
 
 interface PickViewProps {
   places: Place[];
@@ -243,7 +243,7 @@ export default function PickView({
                 className="inline-block whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-semibold text-white"
                 style={{ backgroundColor: scoreToColor(resultScore) }}
               >
-                {scoreToLabel(resultScore)}
+                {scoreToFiveText(resultScore)}점
               </span>
 
               <div className="mt-4 space-y-2">

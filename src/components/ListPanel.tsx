@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Place, Review } from "@/types";
-import { averageQuickRating, scoreToColor, scoreToLabel } from "@/lib/rating";
+import { averageQuickRating, scoreToColor, scoreToFiveText } from "@/lib/rating";
 import PlaceCard from "./PlaceCard";
 
 const ALL = "전체";
@@ -116,10 +116,10 @@ export default function ListPanel({
                       <p className="text-[11px] text-gray-400">평가 {placeReviews.length}건</p>
                     </div>
                     <span
-                      className="shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
+                      className="shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold text-white"
                       style={{ backgroundColor: scoreToColor(score) }}
                     >
-                      {scoreToLabel(score)}
+                      {scoreToFiveText(score)}
                     </span>
                   </button>
                 </li>
