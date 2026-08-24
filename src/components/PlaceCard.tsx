@@ -17,6 +17,7 @@ import {
   ratingDistribution,
   scoreToColor,
   scoreToFiveText,
+  tierToColor,
 } from "@/lib/rating";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -486,7 +487,10 @@ export default function PlaceCard({
                   <li key={r.id} className="rounded-lg border border-gray-100 p-3 text-sm">
                     <div className="mb-1 flex items-center justify-between">
                       <span className="font-medium text-gray-800">{r.authorName}</span>
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                      <span
+                        className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
+                        style={{ backgroundColor: tierToColor(r.quickRating) }}
+                      >
                         {THREE_TIER_LABEL[r.quickRating]}
                       </span>
                     </div>

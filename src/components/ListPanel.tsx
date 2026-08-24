@@ -74,7 +74,7 @@ export default function ListPanel({
               onClick={() => setCategory(cat)}
               className={`mx-1.5 my-0.5 rounded-lg px-2 py-2 text-left text-sm font-medium transition ${
                 active
-                  ? "bg-orange-500 text-white"
+                  ? "bg-blue-600 text-white"
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
@@ -104,7 +104,7 @@ export default function ListPanel({
                     onClick={() => onSelectPlace(place.id)}
                     className={`flex w-full items-center justify-between gap-2 rounded-xl border p-2.5 text-left transition ${
                       active
-                        ? "border-orange-400 bg-orange-50"
+                        ? "border-blue-400 bg-blue-50"
                         : "border-gray-100 bg-white hover:bg-gray-50"
                     }`}
                   >

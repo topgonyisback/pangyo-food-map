@@ -136,7 +136,7 @@ export default function PickView({
                   onClick={() => toggleCategory(cat)}
                   className={`inline-flex items-center gap-1 rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${
                     on
-                      ? "border-orange-500 bg-orange-500 text-white shadow-sm"
+                      ? "border-blue-600 bg-blue-600 text-white shadow-sm"
                       : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
                   }`}
                 >
@@ -159,7 +159,7 @@ export default function PickView({
             }}
             className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${
               excludeBad
-                ? "border-orange-500 bg-orange-500 text-white shadow-sm"
+                ? "border-blue-600 bg-blue-600 text-white shadow-sm"
                 : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
             }`}
           >

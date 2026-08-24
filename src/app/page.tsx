@@ -134,7 +134,7 @@ function HomeInner() {
                   onClick={() => handleTabChange(tab.id)}
                   className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-2.5 py-1.5 text-sm font-semibold transition ${
                     active
-                      ? "bg-orange-500 text-white shadow-sm"
+                      ? "bg-blue-600 text-white shadow-sm"
                       : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
                   }`}
                 >

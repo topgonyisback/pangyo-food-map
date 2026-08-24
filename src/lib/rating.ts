@@ -15,6 +15,11 @@ export function scoreToColor(score: number | null): string {
   return "#22C55E"; // green
 }
 
+// 등급(별로/쏘쏘/맛있어요) → 색상 (평가 칩용)
+export function tierToColor(tier: ThreeTier): string {
+  return scoreToColor(SCORE[tier]);
+}
+
 export function scoreToLabel(score: number | null): string {
   if (score === null) return "평가 없음";
   if (score < 1.75) return "별로예요";
