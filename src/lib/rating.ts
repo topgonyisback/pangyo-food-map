@@ -7,22 +7,21 @@ export function averageQuickRating(reviews: Review[]): number | null {
   return sum / reviews.length;
 }
 
-// 평균(1~5) → 색 (빨/노/초 3구간, 핀·배지용)
+// 개별 점수(1~5) → 색 (따뜻한 램프: 노랑 → 진한 주황빨강, 레퍼런스 스타일)
+const QUICK_COLORS: Record<QuickScore, string> = {
+  1: "#FFD24D", // yellow
+  2: "#FFAE1F", // amber
+  3: "#FF8C1A", // orange
+  4: "#FB6516", // deep orange
+  5: "#F5411A", // red-orange
+};
+
+// 평균(1~5) → 색 (반올림한 단계 색, 핀·배지용)
 export function scoreToColor(score: number | null): string {
   if (score === null) return "#9CA3AF"; // gray - 아직 평가 없음
-  if (score < 2.5) return "#EF4444"; // red
-  if (score < 3.5) return "#F59E0B"; // yellow
-  return "#22C55E"; // green
+  const lv = Math.min(5, Math.max(1, Math.round(score))) as QuickScore;
+  return QUICK_COLORS[lv];
 }
-
-// 개별 점수(1~5) → 색 (5단계 램프: 빨→주황→노랑→라임→초록)
-const QUICK_COLORS: Record<QuickScore, string> = {
-  1: "#EF4444", // red
-  2: "#F59E0B", // amber
-  3: "#FACC15", // yellow
-  4: "#84CC16", // lime
-  5: "#22C55E", // green
-};
 
 export function quickScoreColor(score: QuickScore): string {
   return QUICK_COLORS[score];

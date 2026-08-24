@@ -19,6 +19,11 @@ import {
   ratingDistribution,
   scoreToFiveText,
 } from "@/lib/rating";
+import {
+  AverageFillBar,
+  SegmentedRatingBar,
+  SegmentedRatingInput,
+} from "./SegmentedRating";
 import { useAuth } from "@/hooks/useAuth";
 
 const TIERS: ThreeTier[] = ["bad", "soso", "good"];
@@ -30,49 +35,6 @@ type ReviewDraft = {
   freeComment: string;
   menuNotes: MenuNote[];
 };
-
-// 한줄 평가: 슬라이더(축)를 움직이면 멘트가 바뀜
-function QuickRatingSlider({
-  value,
-  onChange,
-}: {
-  value?: QuickScore;
-  onChange: (v: QuickScore) => void;
-}) {
-  const active = value !== undefined;
-  const current = value ?? 3;
-  return (
-    <div>
-      <div className="mb-2 flex items-baseline gap-2">
-        <span
-          className="text-lg font-extrabold"
-          style={{ color: active ? quickScoreColor(current) : "#9CA3AF" }}
-        >
-          {active ? current : "–"}
-        </span>
-        <span
-          className={`text-sm font-semibold ${active ? "text-gray-900" : "text-gray-400"}`}
-        >
-          {active ? QUICK_SCORE_LABEL[current] : "슬라이더를 움직여 평가해주세요"}
-        </span>
-      </div>
-      <input
-        type="range"
-        min={1}
-        max={5}
-        step={1}
-        value={current}
-        onChange={(e) => onChange(Number(e.target.value) as QuickScore)}
-        className="w-full accent-blue-600"
-        aria-label="한줄 평가 점수"
-      />
-      <div className="mt-1 flex justify-between text-[10px] text-gray-400">
-        <span>별로</span>
-        <span>맛있음</span>
-      </div>
-    </div>
-  );
-}
 
 function TierButtons({
   value,
@@ -125,7 +87,7 @@ function RatingFields({
   return (
     <>
       <label className="mb-1 block text-xs text-gray-500">한줄 평가 (필수)</label>
-      <QuickRatingSlider
+      <SegmentedRatingInput
         value={draft.quickRating}
         onChange={(v) => setDraft((prev) => ({ ...prev, quickRating: v }))}
       />
@@ -347,14 +309,17 @@ export default function PlaceCard({
         </button>
       </div>
 
-      {/* 종합평가 요약: 5점 평균 + 5단계 분포 축 */}
+      {/* 종합평가 요약: 5점 평균 + 그라데이션 채움 바 + 5단계 분포 축 */}
       {dist.total > 0 && (
         <div className="border-b border-gray-100 px-4 py-3">
-          <div className="mb-2 flex items-baseline gap-2">
-            <span className="text-2xl font-extrabold text-gray-900">
+          <div className="mb-1.5 flex items-baseline gap-2">
+            <span className="text-3xl font-extrabold text-gray-900">
               {scoreToFiveText(score)}
             </span>
             <span className="text-xs text-gray-400">/ 5점 · 평가 {dist.total}건</span>
+          </div>
+          <div className="mb-3">
+            <AverageFillBar avg={score ?? 0} />
           </div>
           <div className="space-y-1">
             {([5, 4, 3, 2, 1] as QuickScore[]).map((lv) => {
@@ -531,14 +496,17 @@ export default function PlaceCard({
                 }
                 return (
                   <li key={r.id} className="rounded-lg border border-gray-100 p-3 text-sm">
-                    <div className="mb-1 flex items-center justify-between">
+                    <div className="mb-1 flex items-center justify-between gap-2">
                       <span className="font-medium text-gray-800">{r.authorName}</span>
-                      <span
-                        className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
-                        style={{ backgroundColor: quickScoreColor(r.quickRating) }}
-                      >
-                        {r.quickRating} {QUICK_SCORE_LABEL[r.quickRating]}
-                      </span>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <SegmentedRatingBar score={r.quickRating} />
+                        <span
+                          className="text-xs font-semibold"
+                          style={{ color: quickScoreColor(r.quickRating) }}
+                        >
+                          {QUICK_SCORE_LABEL[r.quickRating]}
+                        </span>
+                      </div>
                     </div>
                     {r.menuNotes.length > 0 && (
                       <p className="text-xs text-gray-500">
