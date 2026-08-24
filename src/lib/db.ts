@@ -10,8 +10,20 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-import { MenuNote, Place, Review } from "@/types";
+import { MenuNote, Place, QuickScore, Review } from "@/types";
 import { auth, db } from "./firebase";
+
+// 한줄 평가 값 정규화: 신규는 1~5 숫자, 구버전은 "bad"/"soso"/"good" 문자열 → 1/3/5
+function normalizeQuick(v: unknown): QuickScore {
+  if (typeof v === "number") {
+    const n = Math.round(v);
+    return Math.min(5, Math.max(1, n)) as QuickScore;
+  }
+  if (v === "good") return 5;
+  if (v === "soso") return 3;
+  if (v === "bad") return 1;
+  return 3;
+}
 
 const CONNECT_FAIL = "서버에 연결하지 못했어요. 잠시 후 다시 시도해주세요.";
 
@@ -40,7 +52,7 @@ function toReview(id: string, d: Record<string, unknown>): Review {
     id,
     placeId: (d.placeId as string) ?? "",
     authorName: (d.authorName as string) ?? "익명",
-    quickRating: d.quickRating as Review["quickRating"],
+    quickRating: normalizeQuick(d.quickRating),
     atmosphereRating: (d.atmosphereRating as Review["atmosphereRating"]) ?? undefined,
     restroomRating: (d.restroomRating as Review["restroomRating"]) ?? undefined,
     freeComment: (d.freeComment as string) ?? undefined,

@@ -45,7 +45,7 @@ export default function PickView({
       }
       if (excludeBad) {
         const score = averageQuickRating(reviews.filter((r) => r.placeId === p.id));
-        if (score !== null && score < 1.75) return false;
+        if (score !== null && score < 2.5) return false;
       }
       return true;
     });
@@ -170,7 +170,7 @@ export default function PickView({
             >
               {excludeBad ? "✓" : ""}
             </span>
-            &apos;별로예요&apos; 제외
+            낮은 평가(2.5점 미만) 제외
           </button>
         </div>
 

@@ -6,29 +6,73 @@ import {
   MENU_TIER_LABEL,
   MenuNote,
   Place,
+  QUICK_SCORE_LABEL,
+  QuickScore,
   RESTROOM_TIER_LABEL,
   Review,
-  THREE_TIER_LABEL,
   ThreeTier,
 } from "@/types";
 import { PRESET_CATEGORIES } from "@/lib/categories";
 import {
   averageQuickRating,
+  quickScoreColor,
   ratingDistribution,
   scoreToFiveText,
-  tierToColor,
 } from "@/lib/rating";
 import { useAuth } from "@/hooks/useAuth";
 
 const TIERS: ThreeTier[] = ["bad", "soso", "good"];
 
 type ReviewDraft = {
-  quickRating?: ThreeTier;
+  quickRating?: QuickScore;
   atmosphereRating?: ThreeTier;
   restroomRating?: ThreeTier;
   freeComment: string;
   menuNotes: MenuNote[];
 };
+
+// 한줄 평가: 슬라이더(축)를 움직이면 멘트가 바뀜
+function QuickRatingSlider({
+  value,
+  onChange,
+}: {
+  value?: QuickScore;
+  onChange: (v: QuickScore) => void;
+}) {
+  const active = value !== undefined;
+  const current = value ?? 3;
+  return (
+    <div>
+      <div className="mb-2 flex items-baseline gap-2">
+        <span
+          className="text-lg font-extrabold"
+          style={{ color: active ? quickScoreColor(current) : "#9CA3AF" }}
+        >
+          {active ? current : "–"}
+        </span>
+        <span
+          className={`text-sm font-semibold ${active ? "text-gray-900" : "text-gray-400"}`}
+        >
+          {active ? QUICK_SCORE_LABEL[current] : "슬라이더를 움직여 평가해주세요"}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={1}
+        max={5}
+        step={1}
+        value={current}
+        onChange={(e) => onChange(Number(e.target.value) as QuickScore)}
+        className="w-full accent-blue-600"
+        aria-label="한줄 평가 점수"
+      />
+      <div className="mt-1 flex justify-between text-[10px] text-gray-400">
+        <span>별로</span>
+        <span>맛있음</span>
+      </div>
+    </div>
+  );
+}
 
 function TierButtons({
   value,
@@ -81,10 +125,9 @@ function RatingFields({
   return (
     <>
       <label className="mb-1 block text-xs text-gray-500">한줄 평가 (필수)</label>
-      <TierButtons
+      <QuickRatingSlider
         value={draft.quickRating}
         onChange={(v) => setDraft((prev) => ({ ...prev, quickRating: v }))}
-        labels={THREE_TIER_LABEL}
       />
 
       <label className="mb-1 mt-2 block text-xs text-gray-500">자유 메모 (선택)</label>
@@ -286,9 +329,6 @@ export default function PlaceCard({
 
   const score = averageQuickRating(reviews);
   const dist = ratingDistribution(reviews);
-  const goodPct = dist.total ? (dist.good / dist.total) * 100 : 0;
-  const sosoPct = dist.total ? (dist.soso / dist.total) * 100 : 0;
-  const badPct = dist.total ? (dist.bad / dist.total) * 100 : 0;
 
   return (
     <div className="flex h-full flex-col bg-white">
@@ -307,7 +347,7 @@ export default function PlaceCard({
         </button>
       </div>
 
-      {/* 종합평가 요약: 5점 + 분포 막대바 */}
+      {/* 종합평가 요약: 5점 평균 + 5단계 분포 축 */}
       {dist.total > 0 && (
         <div className="border-b border-gray-100 px-4 py-3">
           <div className="mb-2 flex items-baseline gap-2">
@@ -316,21 +356,27 @@ export default function PlaceCard({
             </span>
             <span className="text-xs text-gray-400">/ 5점 · 평가 {dist.total}건</span>
           </div>
-          <div className="mb-1.5 flex h-2 overflow-hidden rounded-full bg-gray-100">
-            <div style={{ width: `${goodPct}%`, backgroundColor: "#22C55E" }} />
-            <div style={{ width: `${sosoPct}%`, backgroundColor: "#F59E0B" }} />
-            <div style={{ width: `${badPct}%`, backgroundColor: "#EF4444" }} />
-          </div>
-          <div className="flex gap-3 text-[11px] text-gray-500">
-            <span>
-              <span className="text-green-500">●</span> 맛있어요 {dist.good}
-            </span>
-            <span>
-              <span className="text-amber-500">●</span> 쏘쏘 {dist.soso}
-            </span>
-            <span>
-              <span className="text-red-500">●</span> 별로 {dist.bad}
-            </span>
+          <div className="space-y-1">
+            {([5, 4, 3, 2, 1] as QuickScore[]).map((lv) => {
+              const cnt = dist.counts[lv];
+              const pct = dist.total ? (cnt / dist.total) * 100 : 0;
+              return (
+                <div key={lv} className="flex items-center gap-2">
+                  <span className="w-20 shrink-0 whitespace-nowrap text-[11px] text-gray-500">
+                    {QUICK_SCORE_LABEL[lv]}
+                  </span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${pct}%`, backgroundColor: quickScoreColor(lv) }}
+                    />
+                  </div>
+                  <span className="w-4 shrink-0 text-right text-[11px] text-gray-400">
+                    {cnt}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -489,9 +535,9 @@ export default function PlaceCard({
                       <span className="font-medium text-gray-800">{r.authorName}</span>
                       <span
                         className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
-                        style={{ backgroundColor: tierToColor(r.quickRating) }}
+                        style={{ backgroundColor: quickScoreColor(r.quickRating) }}
                       >
-                        {THREE_TIER_LABEL[r.quickRating]}
+                        {r.quickRating} {QUICK_SCORE_LABEL[r.quickRating]}
                       </span>
                     </div>
                     {r.menuNotes.length > 0 && (

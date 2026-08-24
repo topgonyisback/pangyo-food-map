@@ -1,5 +1,16 @@
 export type ThreeTier = "bad" | "soso" | "good";
 
+// 한줄 평가: 1~5 단계
+export type QuickScore = 1 | 2 | 3 | 4 | 5;
+
+export const QUICK_SCORE_LABEL: Record<QuickScore, string> = {
+  1: "별로",
+  2: "조금 별로",
+  3: "쏘쏘",
+  4: "적당히 맛있음",
+  5: "맛있음",
+};
+
 export type PinMode = { type: "add" } | { type: "edit"; placeId: string } | null;
 
 export interface Place {
@@ -21,7 +32,7 @@ export interface Review {
   id: string;
   placeId: string;
   authorName: string;
-  quickRating: ThreeTier;
+  quickRating: QuickScore;
   atmosphereRating?: ThreeTier;
   restroomRating?: ThreeTier;
   freeComment?: string;
