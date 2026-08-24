@@ -83,6 +83,24 @@ export default function MapView({
     });
   }, [status]);
 
+  // 컨테이너 크기 변경(모바일 회전·주소창 노출/숨김·창 크기 변경) 시 지도 리사이즈
+  useEffect(() => {
+    if (status !== "loaded" || !mapRef.current || !mapDivRef.current) return;
+    const el = mapDivRef.current;
+    const trigger = () => {
+      if (mapRef.current) window.naver.maps.Event.trigger(mapRef.current, "resize");
+    };
+    const ro = new ResizeObserver(trigger);
+    ro.observe(el);
+    window.addEventListener("resize", trigger);
+    window.addEventListener("orientationchange", trigger);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", trigger);
+      window.removeEventListener("orientationchange", trigger);
+    };
+  }, [status]);
+
   useEffect(() => {
     if (status !== "loaded" || !mapRef.current) return;
 

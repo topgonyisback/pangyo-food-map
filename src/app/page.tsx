@@ -14,10 +14,10 @@ import { PinMode } from "@/types";
 
 type ViewMode = "map" | "list" | "pick";
 
-const TABS: { id: ViewMode; label: string; icon: string }[] = [
-  { id: "map", label: "지도", icon: "🗺️" },
-  { id: "list", label: "리스트", icon: "📋" },
-  { id: "pick", label: "오늘 뭐먹지?", icon: "🎲" },
+const TABS: { id: ViewMode; label: string; shortLabel: string; icon: string }[] = [
+  { id: "map", label: "지도", shortLabel: "지도", icon: "🗺️" },
+  { id: "list", label: "리스트", shortLabel: "리스트", icon: "📋" },
+  { id: "pick", label: "오늘 뭐먹지?", shortLabel: "뭐먹지?", icon: "🎲" },
 ];
 
 export default function Home() {
@@ -132,14 +132,15 @@ function HomeInner() {
                   key={tab.id}
                   type="button"
                   onClick={() => handleTabChange(tab.id)}
-                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-2.5 py-1.5 text-sm font-semibold transition ${
+                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-2 py-1.5 text-sm font-semibold transition sm:px-2.5 ${
                     active
                       ? "bg-blue-600 text-white shadow-sm"
                       : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
                   }`}
                 >
                   <span className="text-[15px] leading-none">{tab.icon}</span>
-                  <span>{tab.label}</span>
+                  <span className="sm:hidden">{tab.shortLabel}</span>
+                  <span className="hidden sm:inline">{tab.label}</span>
                 </button>
               );
             })}

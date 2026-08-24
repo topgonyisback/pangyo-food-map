@@ -62,9 +62,9 @@ export default function ListPanel({
   const showDetail = selectedPlace && (category === ALL || selectedPlace.category === category);
 
   return (
-    <div className="pointer-events-none absolute inset-x-2 top-16 z-10 flex items-start gap-2 overflow-x-auto sm:inset-x-auto sm:left-3">
-      {/* 1단: 카테고리 LNB */}
-      <div className="pointer-events-auto flex max-h-[calc(100dvh-5rem)] w-20 shrink-0 flex-col overflow-y-auto rounded-2xl bg-white/95 py-1.5 shadow-lg ring-1 ring-black/5 backdrop-blur sm:w-28">
+    <div className="pointer-events-none absolute inset-x-2 top-16 bottom-2 z-30 flex flex-col gap-2 sm:inset-x-auto sm:bottom-auto sm:left-3 sm:flex-row sm:items-start sm:overflow-x-visible">
+      {/* 1단: 카테고리 — 모바일은 가로 칩, 데스크톱은 세로 LNB */}
+      <div className="pointer-events-auto flex shrink-0 gap-1 overflow-x-auto rounded-2xl bg-white/95 p-1.5 shadow-lg ring-1 ring-black/5 backdrop-blur sm:max-h-[calc(100dvh-5rem)] sm:w-28 sm:flex-col sm:overflow-y-auto sm:py-1.5">
         {categories.map((cat) => {
           const active = cat === category;
           return (
@@ -72,7 +72,7 @@ export default function ListPanel({
               key={cat}
               type="button"
               onClick={() => setCategory(cat)}
-              className={`mx-1.5 my-0.5 rounded-lg px-2 py-2 text-left text-sm font-medium transition ${
+              className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition sm:mx-1.5 sm:my-0.5 sm:px-2 sm:py-2 sm:text-left ${
                 active
                   ? "bg-blue-600 text-white"
                   : "text-gray-600 hover:bg-gray-100"
@@ -84,8 +84,8 @@ export default function ListPanel({
         })}
       </div>
 
-      {/* 2단: 가게 목록 */}
-      <div className="pointer-events-auto flex max-h-[calc(100dvh-5rem)] w-56 shrink-0 flex-col overflow-y-auto rounded-2xl bg-white/95 p-2 shadow-lg ring-1 ring-black/5 backdrop-blur sm:w-64">
+      {/* 2단: 가게 목록 — 모바일은 남은 높이 채우고 세로 스크롤 */}
+      <div className="pointer-events-auto flex min-h-0 flex-1 flex-col overflow-y-auto rounded-2xl bg-white/95 p-2 shadow-lg ring-1 ring-black/5 backdrop-blur sm:max-h-[calc(100dvh-5rem)] sm:w-64 sm:flex-none">
         <p className="px-1 pb-1 text-xs font-semibold text-gray-400">
           {category} · {filtered.length}곳
         </p>
@@ -129,9 +129,9 @@ export default function ListPanel({
         )}
       </div>
 
-      {/* 3단: 상세 + 평가 */}
+      {/* 3단: 상세 + 평가 — 모바일은 전체화면 오버레이, 데스크톱은 3번째 컬럼 */}
       {showDetail && selectedPlace && (
-        <div className="pointer-events-auto max-h-[calc(100dvh-5rem)] w-[20rem] shrink-0 overflow-y-auto rounded-2xl bg-white shadow-xl ring-1 ring-black/5 sm:w-96">
+        <div className="pointer-events-auto fixed inset-0 z-40 overflow-y-auto bg-white sm:relative sm:inset-auto sm:z-auto sm:max-h-[calc(100dvh-5rem)] sm:w-96 sm:shrink-0 sm:rounded-2xl sm:shadow-xl sm:ring-1 sm:ring-black/5">
           <PlaceCard
             place={selectedPlace}
             reviews={reviews.filter((r) => r.placeId === selectedPlace.id)}

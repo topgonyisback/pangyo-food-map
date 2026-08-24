@@ -32,6 +32,7 @@ declare global {
         eventName: string,
         handler: (...args: unknown[]) => void
       ): void;
+      function trigger(target: unknown, eventName: string): void;
     }
   }
 }
