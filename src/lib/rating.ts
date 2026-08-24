@@ -7,13 +7,13 @@ export function averageQuickRating(reviews: Review[]): number | null {
   return sum / reviews.length;
 }
 
-// 개별 점수(1~5) → 색 (따뜻한 램프: 노랑 → 진한 주황빨강, 레퍼런스 스타일)
+// 개별 점수(1~5) → 색 (신호등 램프: 별로 빨강 → 맛있음 초록)
 const QUICK_COLORS: Record<QuickScore, string> = {
-  1: "#FFD24D", // yellow
-  2: "#FFAE1F", // amber
-  3: "#FF8C1A", // orange
-  4: "#FB6516", // deep orange
-  5: "#F5411A", // red-orange
+  1: "#EF4444", // red - 별로
+  2: "#F59E0B", // amber - 조금 별로
+  3: "#FACC15", // yellow - 쏘쏘
+  4: "#84CC16", // lime - 적당히 맛있음
+  5: "#22C55E", // green - 맛있음
 };
 
 // 평균(1~5) → 색 (반올림한 단계 색, 핀·배지용)

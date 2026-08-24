@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { QUICK_SCORE_LABEL, QuickScore } from "@/types";
-import { quickScoreColor } from "@/lib/rating";
+import { quickScoreColor, scoreToColor } from "@/lib/rating";
 
 const LEVELS: QuickScore[] = [1, 2, 3, 4, 5];
 const EMPTY = "#EFEBE6";
@@ -99,17 +99,14 @@ export function SegmentedRatingBar({ score }: { score: QuickScore }) {
   );
 }
 
-// 표시용(평균 채움 바): 그라데이션으로 평균(1~5) 표현 (레퍼런스: 노이즈/애널리틱스 카드)
+// 표시용(평균 채움 바): 평균(1~5)을 점수 색으로 채움 (레퍼런스: 노이즈/애널리틱스 카드)
 export function AverageFillBar({ avg }: { avg: number }) {
   const pct = Math.min(100, Math.max(0, (avg / 5) * 100));
   return (
     <div className="h-2.5 w-full overflow-hidden rounded-full" style={{ backgroundColor: EMPTY }}>
       <div
         className="h-full rounded-full"
-        style={{
-          width: `${pct}%`,
-          background: "linear-gradient(90deg, #FFD24D 0%, #FF8C1A 55%, #F5411A 100%)",
-        }}
+        style={{ width: `${pct}%`, backgroundColor: scoreToColor(avg) }}
       />
     </div>
   );
