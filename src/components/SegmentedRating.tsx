@@ -71,7 +71,7 @@ export function SegmentedRatingInput({
             <div
               key={lv}
               className={`h-9 flex-1 transition-colors ${segRounded(lv)}`}
-              style={{ backgroundColor: filled ? quickScoreColor(lv) : EMPTY }}
+              style={{ backgroundColor: filled ? quickScoreColor(value) : EMPTY }}
             />
           );
         })}
@@ -92,7 +92,7 @@ export function SegmentedRatingBar({ score }: { score: QuickScore }) {
         <div
           key={lv}
           className={`h-1.5 w-3.5 ${segRounded(lv)}`}
-          style={{ backgroundColor: lv <= score ? quickScoreColor(lv) : EMPTY }}
+          style={{ backgroundColor: lv <= score ? quickScoreColor(score) : EMPTY }}
         />
       ))}
     </div>
