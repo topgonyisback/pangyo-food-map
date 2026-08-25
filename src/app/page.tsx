@@ -4,6 +4,7 @@ import { useState } from "react";
 import MapView from "@/components/MapView";
 import ListPanel from "@/components/ListPanel";
 import PickView from "@/components/PickView";
+import SearchBar from "@/components/SearchBar";
 import AccountMenu from "@/components/AccountMenu";
 import AuthModal, { AuthMode } from "@/components/AuthModal";
 import { usePlaces } from "@/hooks/usePlaces";
@@ -33,6 +34,7 @@ function HomeInner() {
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [pinMode, setPinMode] = useState<PinMode>(null);
   const [authModal, setAuthModal] = useState<AuthMode | null>(null);
+  const [focusNonce, setFocusNonce] = useState(0);
   const { places, addPlace, updatePlaceLocation, updatePlace, loadError } = usePlaces();
   const { reviews, addReview, updateReview, deleteReview } = useReviews();
   const hydrated = useIsHydrated();
@@ -65,6 +67,11 @@ function HomeInner() {
 
   const requireLogin = () => setAuthModal("signin");
 
+  function selectFromSearch(placeId: string) {
+    setSelectedPlaceId(placeId);
+    setFocusNonce((n) => n + 1);
+  }
+
   return (
     <div className="relative h-full w-full overflow-hidden">
       {/* 전체 화면 지도 배경 (지도/리스트/뭐먹지 공통) */}
@@ -87,9 +94,15 @@ function HomeInner() {
             onRequireLogin={requireLogin}
             renderCard={view === "map"}
             centerOnSelect={view !== "map"}
+            focusNonce={focusNonce}
           />
         )}
       </div>
+
+      {/* 지도 뷰: 상단 검색바 (가게 선택 시 지도 이동 + 상세 열림) */}
+      {hydrated && view === "map" && !pinMode && !selectedPlaceId && (
+        <SearchBar places={places} reviews={reviews} onSelect={selectFromSearch} />
+      )}
 
       {/* 리스트 뷰: 지도 위에 카테고리·목록·상세 3단 패널 */}
       {hydrated && view === "list" && !pinMode && (

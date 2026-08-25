@@ -21,6 +21,7 @@ declare global {
     class Map {
       constructor(el: HTMLElement | string, options: Record<string, unknown>);
       setCenter(latlng: LatLng): void;
+      setZoom(zoom: number): void;
     }
     class Marker {
       constructor(options: Record<string, unknown>);

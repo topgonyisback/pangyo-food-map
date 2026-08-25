@@ -35,6 +35,7 @@ interface MapViewProps {
   onRequireLogin: () => void;
   renderCard?: boolean;
   centerOnSelect?: boolean;
+  focusNonce?: number;
 }
 
 export default function MapView({
@@ -54,6 +55,7 @@ export default function MapView({
   onRequireLogin,
   renderCard = true,
   centerOnSelect = false,
+  focusNonce = 0,
 }: MapViewProps) {
   const status = useNaverMapsScript();
   const mapDivRef = useRef<HTMLDivElement>(null);
@@ -156,6 +158,16 @@ export default function MapView({
       new window.naver.maps.LatLng(selectedPlace.lat, selectedPlace.lng)
     );
   }, [centerOnSelect, status, selectedPlace]);
+
+  // 검색으로 가게 선택 시 그 위치로 이동 + 확대 (지도 뷰용)
+  useEffect(() => {
+    if (focusNonce === 0 || status !== "loaded" || !mapRef.current || !selectedPlace) return;
+    mapRef.current.setCenter(
+      new window.naver.maps.LatLng(selectedPlace.lat, selectedPlace.lng)
+    );
+    mapRef.current.setZoom(17);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusNonce]);
 
   const editingPlace =
     pinMode?.type === "edit" ? places.find((p) => p.id === pinMode.placeId) ?? null : null;
