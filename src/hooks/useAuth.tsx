@@ -19,7 +19,12 @@ import {
   type User,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { fetchNickname, insertProfile, isNicknameTaken } from "@/lib/db";
+import {
+  changeNicknameDocs,
+  fetchNickname,
+  insertProfile,
+  isNicknameTaken,
+} from "@/lib/db";
 
 interface AuthContextValue {
   user: User | null;
@@ -30,6 +35,7 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  changeNickname: (newNickname: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -138,6 +144,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function changeNickname(newNickname: string) {
+    if (!auth?.currentUser) throw new Error("로그인이 필요해요.");
+    const uid = auth.currentUser.uid;
+    const trimmed = newNickname.trim();
+    if (trimmed.length === 0) throw new Error("닉네임을 입력해주세요.");
+
+    const newKey = trimmed.toLowerCase();
+    const oldNick = nickname;
+    const oldKey = oldNick ? oldNick.toLowerCase() : null;
+    if (oldNick === trimmed) return; // 변경 없음
+
+    // 대소문자만 다른 경우가 아니면 중복 확인
+    if (newKey !== oldKey) {
+      let taken: boolean;
+      try {
+        taken = await isNicknameTaken(trimmed);
+      } catch (e) {
+        throw friendlyAuthError(e);
+      }
+      if (taken) throw new Error("이미 사용 중인 닉네임이에요.");
+    }
+
+    try {
+      await changeNicknameDocs(uid, trimmed, oldKey);
+    } catch {
+      throw new Error("닉네임 변경에 실패했어요. 잠시 후 다시 시도해주세요.");
+    }
+    setNickname(trimmed);
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -148,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signOut,
         sendPasswordReset,
+        changeNickname,
         updatePassword,
       }}
     >

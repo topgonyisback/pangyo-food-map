@@ -162,6 +162,7 @@ function HomeInner() {
           <AccountMenu
             onLogin={() => setAuthModal("signin")}
             onChangePassword={() => setAuthModal("newpassword")}
+            onChangeNickname={() => setAuthModal("nickname")}
           />
         </div>
       </div>

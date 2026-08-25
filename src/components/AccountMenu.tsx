@@ -6,9 +6,14 @@ import { useAuth } from "@/hooks/useAuth";
 interface AccountMenuProps {
   onLogin: () => void;
   onChangePassword: () => void;
+  onChangeNickname: () => void;
 }
 
-export default function AccountMenu({ onLogin, onChangePassword }: AccountMenuProps) {
+export default function AccountMenu({
+  onLogin,
+  onChangePassword,
+  onChangeNickname,
+}: AccountMenuProps) {
   const { user, nickname, signOut } = useAuth();
   const [open, setOpen] = useState(false);
 
@@ -38,6 +43,16 @@ export default function AccountMenu({ onLogin, onChangePassword }: AccountMenuPr
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full z-40 mt-1 w-36 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onChangeNickname();
+              }}
+              className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+            >
+              닉네임 변경
+            </button>
             <button
               type="button"
               onClick={() => {

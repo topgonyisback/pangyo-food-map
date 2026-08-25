@@ -27,12 +27,14 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == uid;
     }
 
-    // 닉네임 중복 방지용 예약 문서 — 한 번 만들면 못 바꾸게
+    // 닉네임 중복 방지용 예약 문서 — 본인 것만 만들고, 이름 변경 시 옛 예약은 본인만 삭제
     match /nicknames/{nickname} {
       allow read: if true;
       allow create: if request.auth != null
                     && request.resource.data.uid == request.auth.uid;
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if request.auth != null
+                    && resource.data.uid == request.auth.uid;
     }
   }
 }

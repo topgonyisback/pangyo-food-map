@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
-export type AuthMode = "signin" | "signup" | "reset" | "newpassword";
+export type AuthMode = "signin" | "signup" | "reset" | "newpassword" | "nickname";
 
 interface AuthModalProps {
   initialMode?: AuthMode;
@@ -12,12 +12,21 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ initialMode = "signin", onClose }: AuthModalProps) {
-  const { signIn, signUp, sendPasswordReset, updatePassword } = useAuth();
+  const {
+    signIn,
+    signUp,
+    sendPasswordReset,
+    updatePassword,
+    changeNickname,
+    nickname: currentNickname,
+  } = useAuth();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
-  const [nickname, setNickname] = useState("");
+  const [nickname, setNickname] = useState(
+    initialMode === "nickname" ? (currentNickname ?? "") : ""
+  );
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -44,6 +53,13 @@ export default function AuthModal({ initialMode = "signin", onClose }: AuthModal
         await updatePassword(currentPassword, password);
         setInfo("비밀번호가 변경됐어요.");
         setTimeout(onClose, 900);
+      } else if (mode === "nickname") {
+        const trimmed = nickname.trim();
+        if (trimmed.length === 0) throw new Error("닉네임을 입력해주세요.");
+        if (trimmed === currentNickname) throw new Error("현재 닉네임과 같아요.");
+        await changeNickname(trimmed);
+        setInfo("닉네임이 변경됐어요.");
+        setTimeout(onClose, 900);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "오류가 발생했어요.");
@@ -57,6 +73,7 @@ export default function AuthModal({ initialMode = "signin", onClose }: AuthModal
     signup: "회원가입",
     reset: "비밀번호 찾기",
     newpassword: "비밀번호 변경",
+    nickname: "닉네임 변경",
   };
 
   return (
@@ -81,7 +98,7 @@ export default function AuthModal({ initialMode = "signin", onClose }: AuthModal
         </div>
 
         <div className="space-y-3">
-          {mode === "signup" && (
+          {(mode === "signup" || mode === "nickname") && (
             <div>
               <label className="mb-1 block text-xs text-gray-500">닉네임 (표시 이름)</label>
               <input
@@ -93,7 +110,7 @@ export default function AuthModal({ initialMode = "signin", onClose }: AuthModal
             </div>
           )}
 
-          {mode !== "newpassword" && (
+          {mode !== "newpassword" && mode !== "nickname" && (
             <div>
               <label className="mb-1 block text-xs text-gray-500">이메일</label>
               <input
@@ -119,7 +136,7 @@ export default function AuthModal({ initialMode = "signin", onClose }: AuthModal
             </div>
           )}
 
-          {mode !== "reset" && (
+          {mode !== "reset" && mode !== "nickname" && (
             <div>
               <label className="mb-1 block text-xs text-gray-500">
                 {mode === "newpassword" ? "새 비밀번호 (6자 이상)" : "비밀번호"}
@@ -156,7 +173,7 @@ export default function AuthModal({ initialMode = "signin", onClose }: AuthModal
         </div>
 
         {/* 모드 전환 링크 */}
-        {mode !== "newpassword" && (
+        {mode !== "newpassword" && mode !== "nickname" && (
           <div className="mt-4 flex flex-col gap-1.5 text-center text-xs text-gray-500">
             {mode === "signin" && (
               <>

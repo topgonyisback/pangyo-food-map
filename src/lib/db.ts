@@ -83,6 +83,27 @@ export async function insertProfile(userId: string, nickname: string): Promise<v
   await setDoc(doc(db, "profiles", userId), { nickname });
 }
 
+// 닉네임 변경: 새 예약 + 프로필 갱신(즉시 성공), 옛 예약 삭제(best-effort)
+export async function changeNicknameDocs(
+  userId: string,
+  newNickname: string,
+  oldKey: string | null
+): Promise<void> {
+  if (!db) throw new Error(CONNECT_FAIL);
+  const newKey = newNickname.toLowerCase();
+  if (newKey !== oldKey) {
+    await setDoc(doc(db, "nicknames", newKey), { uid: userId });
+  }
+  await setDoc(doc(db, "profiles", userId), { nickname: newNickname });
+  if (oldKey && oldKey !== newKey) {
+    try {
+      await deleteDoc(doc(db, "nicknames", oldKey));
+    } catch {
+      // 규칙상 삭제가 막혀 있으면 옛 예약이 남지만, 변경 자체는 성공 처리
+    }
+  }
+}
+
 // --- Places ---
 
 export async function fetchPlaces(): Promise<Place[]> {
