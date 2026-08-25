@@ -115,13 +115,13 @@ function RatingFields({
             <label className="mb-1 block text-xs text-gray-500">메뉴별 평가 (먹은 메뉴만)</label>
             <div className="space-y-2">
               {draft.menuNotes.map((note, i) => (
-                <div key={i} className="space-y-1 rounded-md bg-white p-2">
-                  <div className="flex gap-2">
+                <div key={i} className="space-y-2.5 rounded-md bg-white p-2.5">
+                  <div className="flex items-center gap-2">
                     <input
                       value={note.menuName}
                       onChange={(e) => updateMenuNote(i, { menuName: e.target.value })}
                       placeholder="메뉴 이름"
-                      className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-900"
+                      className="flex-1 rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900"
                     />
                     <button
                       type="button"
