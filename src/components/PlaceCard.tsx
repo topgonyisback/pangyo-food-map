@@ -235,6 +235,7 @@ export default function PlaceCard({
   const isOwnPlace = !!user && place.userId === user.uid;
 
   const [isEditingInfo, setIsEditingInfo] = useState(false);
+  const [showRatingForm, setShowRatingForm] = useState(false);
   const [editName, setEditName] = useState(place.name);
   const [editCategory, setEditCategory] = useState(place.category);
   const [editUrl, setEditUrl] = useState(place.naverMapUrl);
@@ -270,6 +271,7 @@ export default function PlaceCard({
       ...draftToPatch(draft),
     });
     setDraft(EMPTY_DRAFT);
+    setShowRatingForm(false);
   }
 
   function startEditReview(r: Review) {
@@ -419,23 +421,44 @@ export default function PlaceCard({
           </div>
         )}
 
-        {/* 평가 작성 (로그인 시 폼) */}
-        {user && (
-          <div className="mb-4 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
-            <p className="text-xs text-gray-500">
-              작성자: <span className="font-medium text-gray-700">{nickname ?? "…"}</span>
-            </p>
-            <RatingFields draft={draft} setDraft={setDraft} />
+        {/* 평가 작성 (로그인 시): 평가하기 버튼 → 폼 펼침 */}
+        {user &&
+          (showRatingForm ? (
+            <div className="mb-4 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
+              <p className="text-xs text-gray-500">
+                작성자: <span className="font-medium text-gray-700">{nickname ?? "…"}</span>
+              </p>
+              <RatingFields draft={draft} setDraft={setDraft} />
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRatingForm(false);
+                    setDraft(EMPTY_DRAFT);
+                  }}
+                  className="flex-1 rounded-lg border border-gray-300 py-2 text-sm font-semibold text-gray-600 hover:bg-white"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={draft.quickRating === undefined}
+                  className="flex-1 rounded-lg bg-blue-600 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+                >
+                  평가 등록
+                </button>
+              </div>
+            </div>
+          ) : (
             <button
               type="button"
-              onClick={handleSubmit}
-              disabled={draft.quickRating === undefined}
-              className="mt-2 w-full rounded-lg bg-blue-600 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+              onClick={() => setShowRatingForm(true)}
+              className="mb-4 w-full rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
             >
-              평가 등록
+              ✏️ 평가하기
             </button>
-          </div>
-        )}
+          ))}
 
         <div>
           <h3 className="mb-2 text-sm font-semibold text-gray-700">
