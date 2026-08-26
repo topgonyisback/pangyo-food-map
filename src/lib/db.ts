@@ -13,11 +13,11 @@ import {
 import { MenuNote, Place, QuickScore, Review } from "@/types";
 import { auth, db } from "./firebase";
 
-// 한줄 평가 값 정규화: 신규는 1~5 숫자, 구버전은 "bad"/"soso"/"good" 문자열 → 1/3/5
+// 한줄 평가 값 정규화: 신규는 0~5(0.5 단위) 숫자, 구버전은 "bad"/"soso"/"good" 문자열 → 1/3/5
 function normalizeQuick(v: unknown): QuickScore {
   if (typeof v === "number") {
-    const n = Math.round(v);
-    return Math.min(5, Math.max(1, n)) as QuickScore;
+    const snapped = Math.round(v * 2) / 2; // 0.5 단위로 스냅
+    return Math.min(5, Math.max(0, snapped)) as QuickScore;
   }
   if (v === "good") return 5;
   if (v === "soso") return 3;

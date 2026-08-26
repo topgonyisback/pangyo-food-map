@@ -1,14 +1,24 @@
 export type ThreeTier = "bad" | "soso" | "good";
 
-// 한줄 평가: 1~5 단계
-export type QuickScore = 1 | 2 | 3 | 4 | 5;
+// 한줄 평가: 0~5, 0.5 단위 (11단계)
+export type QuickScore = number;
 
-export const QUICK_SCORE_LABEL: Record<QuickScore, string> = {
+export const QUICK_SCORES: QuickScore[] = [
+  0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5,
+];
+
+export const QUICK_SCORE_LABEL: Record<number, string> = {
+  0: "노맛",
+  0.5: "최악",
   1: "별로",
-  2: "조금 별로",
-  3: "쏘쏘",
-  4: "적당히 맛있음",
-  5: "맛있음",
+  1.5: "좀 별로",
+  2: "아쉬움",
+  2.5: "쏘쏘",
+  3: "무난",
+  3.5: "괜찮음",
+  4: "맛있음",
+  4.5: "아주 맛있음",
+  5: "인생맛집",
 };
 
 export type PinMode = { type: "add" } | { type: "edit"; placeId: string } | null;

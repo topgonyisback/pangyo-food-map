@@ -263,7 +263,7 @@ export default function PlaceCard({
   const categoryOptions = Array.from(new Set([...PRESET_CATEGORIES, place.category]));
 
   function handleSubmit() {
-    if (!draft.quickRating) return;
+    if (draft.quickRating === undefined) return;
     onAddReview({
       placeId: place.id,
       authorName: nickname ?? "익명",
@@ -284,7 +284,7 @@ export default function PlaceCard({
   }
 
   function handleSaveEdit() {
-    if (!editingReviewId || !editDraft.quickRating) return;
+    if (!editingReviewId || editDraft.quickRating === undefined) return;
     onUpdateReview(editingReviewId, draftToPatch(editDraft));
     setEditingReviewId(null);
   }
@@ -452,7 +452,7 @@ export default function PlaceCard({
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={!draft.quickRating}
+              disabled={draft.quickRating === undefined}
               className="mt-2 w-full rounded-lg bg-blue-600 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
             >
               평가 등록
@@ -485,7 +485,7 @@ export default function PlaceCard({
                         <button
                           type="button"
                           onClick={handleSaveEdit}
-                          disabled={!editDraft.quickRating}
+                          disabled={editDraft.quickRating === undefined}
                           className="flex-1 rounded-lg bg-blue-600 py-2 text-sm font-semibold text-white disabled:bg-gray-300"
                         >
                           저장
