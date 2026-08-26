@@ -27,6 +27,12 @@ declare global {
       constructor(options: Record<string, unknown>);
       setMap(map: Map | null): void;
     }
+    class InfoWindow {
+      constructor(options: Record<string, unknown>);
+      open(map: Map, anchor?: Marker): void;
+      close(): void;
+      setContent(content: string): void;
+    }
     namespace Event {
       function addListener(
         target: unknown,

@@ -64,6 +64,7 @@ export default function MapView({
   const markersRef = useRef<naver.maps.Marker[]>([]);
   const pendingMarkerRef = useRef<naver.maps.Marker | null>(null);
   const highlightRef = useRef<naver.maps.Marker | null>(null);
+  const tooltipRef = useRef<naver.maps.InfoWindow | null>(null);
   const pinModeRef = useRef(pinMode);
   const closeRef = useRef<() => void>(() => {});
   const [pendingLocation, setPendingLocation] = useState<{ lat: number; lng: number } | null>(
@@ -79,6 +80,15 @@ export default function MapView({
     mapRef.current = new window.naver.maps.Map(mapDivRef.current, {
       center: new window.naver.maps.LatLng(PANGYO_CENTER.lat, PANGYO_CENTER.lng),
       zoom: 16,
+    });
+
+    // hover 툴팁(상호명)용 InfoWindow (재사용)
+    tooltipRef.current = new window.naver.maps.InfoWindow({
+      content: "",
+      borderWidth: 0,
+      disableAnchor: true,
+      backgroundColor: "transparent",
+      pixelOffset: new window.naver.maps.Point(0, -6),
     });
 
     window.naver.maps.Event.addListener(mapRef.current, "click", (e: unknown) => {
@@ -155,6 +165,24 @@ export default function MapView({
           },
         });
         window.naver.maps.Event.addListener(marker, "click", () => onSelectPlace(place.id));
+
+        // hover 시 상호명 툴팁
+        const safeName = place.name
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+        window.naver.maps.Event.addListener(marker, "mouseover", () => {
+          if (pinModeRef.current || !tooltipRef.current || !mapRef.current) return;
+          tooltipRef.current.setContent(
+            `<div style="background:#111827;color:#fff;padding:4px 9px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.35);">${safeName}</div>`
+          );
+          tooltipRef.current.open(mapRef.current, marker);
+        });
+        window.naver.maps.Event.addListener(marker, "mouseout", () => {
+          tooltipRef.current?.close();
+        });
+
         markersRef.current.push(marker);
       });
   }, [status, places, reviews, onSelectPlace, pinMode]);
