@@ -133,6 +133,7 @@ export default function ListPanel({
       {showDetail && selectedPlace && (
         <div className="pointer-events-auto fixed inset-0 z-40 overflow-y-auto bg-white sm:relative sm:inset-auto sm:z-auto sm:max-h-[calc(100dvh-5rem)] sm:w-96 sm:shrink-0 sm:rounded-2xl sm:shadow-xl sm:ring-1 sm:ring-black/5">
           <PlaceCard
+            key={selectedPlace.id}
             place={selectedPlace}
             reviews={reviews.filter((r) => r.placeId === selectedPlace.id)}
             onAddReview={onAddReview}

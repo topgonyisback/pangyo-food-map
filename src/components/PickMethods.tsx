@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Place } from "@/types";
 
@@ -283,12 +283,19 @@ export function WorldcupPicker({ candidates, onPicked }: PickerProps) {
   const [round, setRound] = useState<Place[]>(bracket);
   const [nextRound, setNextRound] = useState<Place[]>([]);
   const [pairIdx, setPairIdx] = useState(0);
+  const [intro, setIntro] = useState(true);
 
   const a = round[pairIdx * 2];
   const b = round[pairIdx * 2 + 1];
   const totalPairs = Math.floor(round.length / 2);
   const roundName =
     round.length >= 16 ? "16강" : round.length >= 8 ? "8강" : round.length >= 4 ? "4강" : "결승";
+
+  // 라운드가 바뀔 때마다 "○○강" 안내를 잠깐 보여준 뒤 숨김 (setState는 콜백에서만)
+  useEffect(() => {
+    const t = window.setTimeout(() => setIntro(false), 1100);
+    return () => window.clearTimeout(t);
+  }, [round]);
 
   function choose(winner: Place) {
     const nr = [...nextRound, winner];
@@ -302,6 +309,7 @@ export function WorldcupPicker({ candidates, onPicked }: PickerProps) {
       setRound(nr);
       setNextRound([]);
       setPairIdx(0);
+      setIntro(true); // 다음 라운드 안내 표시
     } else {
       setNextRound(nr);
       setPairIdx(nextPair);
@@ -309,6 +317,23 @@ export function WorldcupPicker({ candidates, onPicked }: PickerProps) {
   }
 
   if (!a || !b) return null;
+
+  if (intro) {
+    return (
+      <motion.div
+        key={roundName + round.length}
+        initial={{ scale: 0.7, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="flex min-h-[200px] flex-col items-center justify-center rounded-xl bg-white p-6 text-center shadow-sm"
+      >
+        <span className="text-5xl">🏆</span>
+        <p className="mt-2 text-3xl font-extrabold text-gray-900">{roundName}</p>
+        <p className="mt-1 text-sm text-gray-400">
+          {round.length}곳 중 최고의 한 곳을 가려요
+        </p>
+      </motion.div>
+    );
+  }
 
   return (
     <div>

@@ -62,7 +62,9 @@ export default function MapView({
   const mapRef = useRef<naver.maps.Map | null>(null);
   const markersRef = useRef<naver.maps.Marker[]>([]);
   const pendingMarkerRef = useRef<naver.maps.Marker | null>(null);
+  const highlightRef = useRef<naver.maps.Marker | null>(null);
   const pinModeRef = useRef(pinMode);
+  const closeRef = useRef<() => void>(() => {});
   const [pendingLocation, setPendingLocation] = useState<{ lat: number; lng: number } | null>(
     null
   );
@@ -79,11 +81,37 @@ export default function MapView({
     });
 
     window.naver.maps.Event.addListener(mapRef.current, "click", (e: unknown) => {
-      if (!pinModeRef.current) return;
-      const coord = (e as naver.maps.PointerEvent).coord;
-      setPendingLocation({ lat: coord.lat(), lng: coord.lng() });
+      if (pinModeRef.current) {
+        const coord = (e as naver.maps.PointerEvent).coord;
+        setPendingLocation({ lat: coord.lat(), lng: coord.lng() });
+        return;
+      }
+      // 핀 모드가 아닐 때 빈 지도 클릭 → 열려있는 상세 닫기
+      closeRef.current();
     });
   }, [status]);
+
+  // 최신 선택 상태를 클릭 핸들러에서 참조
+  useEffect(() => {
+    closeRef.current = () => {
+      if (!pinModeRef.current && selectedPlaceId) onSelectPlace(null);
+    };
+  }, [selectedPlaceId, onSelectPlace]);
+
+  // ESC: 핀(추가·위치수정) 모드 취소 / 열려있는 상세 닫기
+  useEffect(() => {
+    function onKey(ev: KeyboardEvent) {
+      if (ev.key !== "Escape") return;
+      if (pinMode) {
+        setPendingLocation(null);
+        onExitPinMode();
+      } else if (selectedPlaceId) {
+        onSelectPlace(null);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pinMode, selectedPlaceId, onExitPinMode, onSelectPlace]);
 
   // 컨테이너 크기 변경(모바일 회전·주소창 노출/숨김·창 크기 변경) 시 지도 리사이즈
   useEffect(() => {
@@ -159,13 +187,28 @@ export default function MapView({
     );
   }, [centerOnSelect, status, selectedPlace]);
 
-  // 검색으로 가게 선택 시 그 위치로 이동 + 확대 (지도 뷰용)
+  // 검색으로 가게 선택 시 그 위치로 이동 + 확대 + 펄스 하이라이트 (지도 뷰용)
   useEffect(() => {
     if (focusNonce === 0 || status !== "loaded" || !mapRef.current || !selectedPlace) return;
-    mapRef.current.setCenter(
-      new window.naver.maps.LatLng(selectedPlace.lat, selectedPlace.lng)
-    );
+    const pos = new window.naver.maps.LatLng(selectedPlace.lat, selectedPlace.lng);
+    mapRef.current.setCenter(pos);
     mapRef.current.setZoom(17);
+
+    highlightRef.current?.setMap(null);
+    highlightRef.current = new window.naver.maps.Marker({
+      position: pos,
+      map: mapRef.current,
+      zIndex: 1000,
+      icon: {
+        content: '<div class="pin-pulse"></div>',
+        anchor: new window.naver.maps.Point(20, 20),
+      },
+    });
+    const t = window.setTimeout(() => {
+      highlightRef.current?.setMap(null);
+      highlightRef.current = null;
+    }, 2800);
+    return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusNonce]);
 
@@ -176,7 +219,15 @@ export default function MapView({
   return (
     <div className="relative h-full w-full">
       {/* 핀 모드에서 네이버 지도 손모양 커서를 십자 커서로 강제 (globals.css가 아닌 인라인으로 확실히 적용) */}
-      <style>{`.pin-cursor, .pin-cursor * { cursor: crosshair !important; }`}</style>
+      <style>{`
+        .pin-cursor, .pin-cursor * { cursor: crosshair !important; }
+        .pin-pulse { width: 40px; height: 40px; border-radius: 9999px; background: rgba(37,99,235,.30); animation: pinpulse 1.2s ease-out infinite; }
+        @keyframes pinpulse {
+          0% { transform: scale(.4); opacity: .95; box-shadow: 0 0 0 0 rgba(37,99,235,.55); }
+          70% { transform: scale(1.5); opacity: 0; box-shadow: 0 0 0 16px rgba(37,99,235,0); }
+          100% { transform: scale(1.5); opacity: 0; }
+        }
+      `}</style>
       <div
         ref={mapDivRef}
         className={`h-full w-full ${pinMode ? "pin-cursor" : ""}`}
@@ -277,6 +328,7 @@ export default function MapView({
       {renderCard && !pinMode && selectedPlace && (
         <div className="absolute inset-y-0 right-0 z-30 w-full max-w-sm shadow-xl sm:m-3 sm:rounded-xl">
           <PlaceCard
+            key={selectedPlace.id}
             place={selectedPlace}
             reviews={reviews.filter((r) => r.placeId === selectedPlace.id)}
             onAddReview={onAddReview}
