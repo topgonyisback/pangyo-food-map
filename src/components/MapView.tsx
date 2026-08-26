@@ -7,7 +7,8 @@ import { averageQuickRating, scoreToColor } from "@/lib/rating";
 import PlaceCard from "./PlaceCard";
 import AddPlaceForm from "./AddPlaceForm";
 
-const PANGYO_CENTER = { lat: 37.3947, lng: 127.1112 };
+// 아이스크림미디어(판교역로 225-20 시공빌딩)를 초기 지도 중심으로
+const PANGYO_CENTER = { lat: 37.4001063, lng: 127.1080857 };
 
 interface MapViewProps {
   places: Place[];
