@@ -318,31 +318,7 @@ export default function PlaceCard({
             </span>
             <span className="text-xs text-gray-400">/ 5점 · 평가 {dist.total}건</span>
           </div>
-          <div className="mb-3">
-            <AverageFillBar avg={score ?? 0} />
-          </div>
-          <div className="space-y-1">
-            {([5, 4, 3, 2, 1] as QuickScore[]).map((lv) => {
-              const cnt = dist.counts[lv];
-              const pct = dist.total ? (cnt / dist.total) * 100 : 0;
-              return (
-                <div key={lv} className="flex items-center gap-2">
-                  <span className="w-20 shrink-0 whitespace-nowrap text-[11px] text-gray-500">
-                    {QUICK_SCORE_LABEL[lv]}
-                  </span>
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${pct}%`, backgroundColor: quickScoreColor(lv) }}
-                    />
-                  </div>
-                  <span className="w-4 shrink-0 text-right text-[11px] text-gray-400">
-                    {cnt}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          <AverageFillBar avg={score ?? 0} />
         </div>
       )}
 
@@ -399,47 +375,48 @@ export default function PlaceCard({
             </div>
           </div>
         ) : (
-          <>
-            {/* 네이버지도 + 평가남기기 (로그아웃 시 한 줄 2개) */}
-            <div className={`mb-2 gap-2 ${user ? "flex" : "grid grid-cols-2"}`}>
-              <a
-                href={place.naverMapUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-green-500 px-3 py-2 text-sm font-semibold text-white hover:bg-green-600"
+          /* 네이버지도 · (평가남기기|정보수정·위치수정) 한 줄 배치 */
+          <div
+            className={`mb-4 gap-2 ${
+              isOwnPlace ? "grid grid-cols-3" : !user ? "grid grid-cols-2" : "flex"
+            }`}
+          >
+            <a
+              href={place.naverMapUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-green-500 px-2 py-2 text-xs font-semibold text-white hover:bg-green-600 sm:text-sm"
+            >
+              네이버지도
+            </a>
+            {!user && (
+              <button
+                type="button"
+                onClick={onRequireLogin}
+                className="whitespace-nowrap rounded-lg border border-blue-300 bg-blue-50 px-2 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 sm:text-sm"
               >
-                네이버지도
-              </a>
-              {!user && (
-                <button
-                  type="button"
-                  onClick={onRequireLogin}
-                  className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100"
-                >
-                  평가남기기
-                </button>
-              )}
-            </div>
-
+                평가남기기
+              </button>
+            )}
             {isOwnPlace && (
-              <div className="mb-4 flex gap-2">
+              <>
                 <button
                   type="button"
                   onClick={startEditingInfo}
-                  className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                  className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-gray-300 px-2 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 sm:text-sm"
                 >
-                  ✏️ 정보 수정
+                  ✏️ 정보수정
                 </button>
                 <button
                   type="button"
                   onClick={onEditLocation}
-                  className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                  className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-gray-300 px-2 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 sm:text-sm"
                 >
-                  📍 위치 수정
+                  📍 위치수정
                 </button>
-              </div>
+              </>
             )}
-          </>
+          </div>
         )}
 
         {/* 평가 작성 (로그인 시 폼) */}
@@ -526,7 +503,9 @@ export default function PlaceCard({
                         화장실: {RESTROOM_TIER_LABEL[r.restroomRating]}
                       </p>
                     )}
-                    {r.freeComment && <p className="mt-1 text-gray-700">{r.freeComment}</p>}
+                    {r.freeComment && (
+                      <p className="mt-1 whitespace-pre-line text-gray-700">{r.freeComment}</p>
+                    )}
                     {mine && (
                       <div className="mt-2 flex gap-3 text-xs">
                         <button
