@@ -216,30 +216,39 @@ export default function MapView({
     );
   }, [centerOnSelect, status, selectedPlace]);
 
-  // 검색으로 가게 선택 시 그 위치로 이동 + 확대 + 펄스 하이라이트 (지도 뷰용)
+  // 검색으로 가게 선택 시 그 위치로 이동 + 확대 (지도 뷰용)
   useEffect(() => {
     if (focusNonce === 0 || status !== "loaded" || !mapRef.current || !selectedPlace) return;
-    const pos = new window.naver.maps.LatLng(selectedPlace.lat, selectedPlace.lng);
-    mapRef.current.setCenter(pos);
+    mapRef.current.setCenter(
+      new window.naver.maps.LatLng(selectedPlace.lat, selectedPlace.lng)
+    );
     mapRef.current.setZoom(17);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusNonce]);
 
+  // 가게가 선택될 때마다(마커 클릭·검색·리스트·뽑기) 그 지점에 펄스 하이라이트
+  useEffect(() => {
+    if (status !== "loaded" || !mapRef.current || !selectedPlace) {
+      highlightRef.current?.setMap(null);
+      highlightRef.current = null;
+      return;
+    }
     highlightRef.current?.setMap(null);
     highlightRef.current = new window.naver.maps.Marker({
-      position: pos,
+      position: new window.naver.maps.LatLng(selectedPlace.lat, selectedPlace.lng),
       map: mapRef.current,
       zIndex: 1000,
       icon: {
         content: '<div class="pin-pulse"></div>',
-        anchor: new window.naver.maps.Point(20, 20),
+        anchor: new window.naver.maps.Point(24, 24),
       },
     });
     const t = window.setTimeout(() => {
       highlightRef.current?.setMap(null);
       highlightRef.current = null;
-    }, 2800);
+    }, 3000);
     return () => window.clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusNonce]);
+  }, [status, selectedPlace]);
 
   const editingPlace =
     pinMode?.type === "edit" ? places.find((p) => p.id === pinMode.placeId) ?? null : null;
@@ -250,11 +259,11 @@ export default function MapView({
       {/* 핀 모드에서 네이버 지도 손모양 커서를 십자 커서로 강제 (globals.css가 아닌 인라인으로 확실히 적용) */}
       <style>{`
         .pin-cursor, .pin-cursor * { cursor: crosshair !important; }
-        .pin-pulse { width: 40px; height: 40px; border-radius: 9999px; background: rgba(37,99,235,.30); animation: pinpulse 1.2s ease-out infinite; }
+        .pin-pulse { width: 48px; height: 48px; border-radius: 9999px; background: rgba(37,99,235,.35); animation: pinpulse 1.1s ease-out infinite; }
         @keyframes pinpulse {
-          0% { transform: scale(.4); opacity: .95; box-shadow: 0 0 0 0 rgba(37,99,235,.55); }
-          70% { transform: scale(1.5); opacity: 0; box-shadow: 0 0 0 16px rgba(37,99,235,0); }
-          100% { transform: scale(1.5); opacity: 0; }
+          0% { transform: scale(.35); opacity: 1; box-shadow: 0 0 0 0 rgba(37,99,235,.6); }
+          70% { transform: scale(1.7); opacity: 0; box-shadow: 0 0 0 20px rgba(37,99,235,0); }
+          100% { transform: scale(1.7); opacity: 0; }
         }
       `}</style>
       <div

@@ -284,6 +284,7 @@ export function WorldcupPicker({ candidates, onPicked }: PickerProps) {
   const [nextRound, setNextRound] = useState<Place[]>([]);
   const [pairIdx, setPairIdx] = useState(0);
   const [intro, setIntro] = useState(true);
+  const [chosenId, setChosenId] = useState<string | null>(null);
 
   const a = round[pairIdx * 2];
   const b = round[pairIdx * 2 + 1];
@@ -297,7 +298,17 @@ export function WorldcupPicker({ candidates, onPicked }: PickerProps) {
     return () => window.clearTimeout(t);
   }, [round]);
 
-  function choose(winner: Place) {
+  // 선택 → 잠깐 강조해서 알려준 뒤 다음으로
+  function pickWinner(winner: Place) {
+    if (chosenId) return;
+    setChosenId(winner.id);
+    window.setTimeout(() => {
+      setChosenId(null);
+      advance(winner);
+    }, 700);
+  }
+
+  function advance(winner: Place) {
     const nr = [...nextRound, winner];
     const nextPair = pairIdx + 1;
     if (nextPair >= totalPairs) {
@@ -341,19 +352,37 @@ export function WorldcupPicker({ candidates, onPicked }: PickerProps) {
         {roundName} · {pairIdx + 1}/{totalPairs} — 더 끌리는 곳을 고르세요
       </p>
       <div className="space-y-2">
-        {[a, b].map((p, i) => (
-          <div key={p.id}>
-            <button
-              type="button"
-              onClick={() => choose(p)}
-              className="w-full rounded-xl border border-gray-200 bg-white p-4 text-center transition hover:border-blue-400 hover:bg-blue-50"
-            >
-              <p className="text-xs font-medium text-blue-600">{p.category}</p>
-              <p className="text-lg font-extrabold text-gray-900">{p.name}</p>
-            </button>
-            {i === 0 && <p className="my-1 text-center text-xs font-bold text-gray-400">VS</p>}
-          </div>
-        ))}
+        {[a, b].map((p, i) => {
+          const isChosen = chosenId === p.id;
+          const isOther = chosenId !== null && !isChosen;
+          return (
+            <div key={p.id}>
+              <motion.button
+                type="button"
+                onClick={() => pickWinner(p)}
+                disabled={chosenId !== null}
+                animate={{ scale: isChosen ? 1.04 : isOther ? 0.96 : 1 }}
+                transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                className={`relative w-full rounded-xl border p-4 text-center transition ${
+                  isChosen
+                    ? "border-blue-500 bg-blue-50 ring-2 ring-blue-400"
+                    : isOther
+                      ? "border-gray-200 bg-white opacity-40"
+                      : "border-gray-200 bg-white hover:border-blue-400 hover:bg-blue-50"
+                }`}
+              >
+                <p className="text-xs font-medium text-blue-600">{p.category}</p>
+                <p className="text-lg font-extrabold text-gray-900">{p.name}</p>
+                {isChosen && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-blue-600 px-2.5 py-1 text-xs font-bold text-white">
+                    ✓ 선택!
+                  </span>
+                )}
+              </motion.button>
+              {i === 0 && <p className="my-1 text-center text-xs font-bold text-gray-400">VS</p>}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

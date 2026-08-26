@@ -241,16 +241,15 @@ export default function PickView({
         })}
       </div>
 
+      {/* 게임/결과 영역 (컨페티 원점 기준) */}
+      <div ref={stageRef} className="mt-1">
       {candidates.length === 0 ? (
-        <p className="mt-2 text-center text-sm text-gray-400">
+        <p className="text-center text-sm text-gray-400">
           조건에 맞는 가게가 없어요. 필터를 바꾸거나 가게를 먼저 등록해보세요.
         </p>
       ) : resultPlace ? (
         /* 결과 */
-        <div
-          ref={stageRef}
-          className="mt-1 flex min-h-[200px] flex-col items-center justify-center rounded-xl bg-white p-4 shadow-sm"
-        >
+        <div className="flex min-h-[200px] flex-col items-center justify-center rounded-xl bg-white p-4 shadow-sm">
           <motion.div
             initial={{ scale: 0.6, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -301,6 +300,7 @@ export default function PickView({
           {method === "worldcup" && <WorldcupPicker {...pickerProps} />}
         </div>
       )}
+      </div>
     </div>
   );
 }
