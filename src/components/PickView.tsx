@@ -14,9 +14,16 @@ interface PickViewProps {
 }
 
 type Phase = "idle" | "spinning" | "result";
+type PickMode = "lunch" | "coffee";
 
 const ITEM_H = 150; // 릴 한 칸 높이(px)
 const REEL_LEN = 26; // 스핀 동안 지나가는 칸 수
+
+// 커피타임 카테고리 판별 (그 외는 점심시간)
+const COFFEE_KEYWORDS = ["카페", "커피", "디저트", "베이커리", "브런치", "빵"];
+function isCoffeeCategory(cat: string): boolean {
+  return COFFEE_KEYWORDS.some((k) => cat.includes(k));
+}
 
 export default function PickView({
   places,
@@ -24,7 +31,8 @@ export default function PickView({
   onGoToPlace,
   onSelectPlace,
 }: PickViewProps) {
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [mode, setMode] = useState<PickMode>("lunch");
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [excludeBad, setExcludeBad] = useState(true);
   const [phase, setPhase] = useState<Phase>("idle");
   const [reel, setReel] = useState<Place[]>([]);
@@ -33,30 +41,54 @@ export default function PickView({
   const lastPickedRef = useRef<string | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
 
-  const allCategories = useMemo(
-    () => Array.from(new Set(places.map((p) => p.category))),
-    [places]
+  // 현재 모드(점심/커피)에 해당하는 카테고리들
+  const modeCategories = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          places
+            .filter((p) =>
+              mode === "coffee"
+                ? isCoffeeCategory(p.category)
+                : !isCoffeeCategory(p.category)
+            )
+            .map((p) => p.category)
+        )
+      ),
+    [places, mode]
   );
 
   const candidates = useMemo(() => {
     return places.filter((p) => {
-      if (selectedCategories.length > 0 && !selectedCategories.includes(p.category)) {
-        return false;
-      }
+      const coffee = isCoffeeCategory(p.category);
+      if (mode === "coffee" ? !coffee : coffee) return false; // 모드 불일치 제외
+      if (excluded.has(p.category)) return false; // 사용자가 뺀 카테고리 제외
       if (excludeBad) {
         const score = averageQuickRating(reviews.filter((r) => r.placeId === p.id));
         if (score !== null && score < 2.5) return false;
       }
       return true;
     });
-  }, [places, reviews, selectedCategories, excludeBad]);
+  }, [places, reviews, mode, excluded, excludeBad]);
 
-  function toggleCategory(cat: string) {
-    setSelectedCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
-    );
+  function resetPick() {
     setPhase("idle");
     setResultId(null);
+  }
+
+  function changeMode(m: PickMode) {
+    setMode(m);
+    resetPick();
+  }
+
+  function toggleExclude(cat: string) {
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+    resetPick();
   }
 
   function fireConfetti() {
@@ -120,32 +152,62 @@ export default function PickView({
   return (
     <div className="absolute inset-x-2 top-16 z-10 flex max-h-[calc(100%-4.5rem)] flex-col overflow-y-auto rounded-2xl bg-white/95 p-4 shadow-lg ring-1 ring-black/5 backdrop-blur sm:inset-x-auto sm:left-3 sm:w-96">
       <h2 className="mb-1 text-xl font-bold text-gray-900">오늘 뭐먹지? 🎲</h2>
-      <p className="mb-4 text-sm text-gray-500">조건을 고르고 버튼을 누르면 랜덤으로 골라드려요.</p>
+      <p className="mb-4 text-sm text-gray-500">모드와 조건을 고르고 버튼을 누르면 랜덤으로 골라드려요.</p>
+
+      {/* 모드: 점심시간 / 커피타임 */}
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        {([
+          { id: "lunch", label: "🍚 점심시간" },
+          { id: "coffee", label: "☕ 커피타임" },
+        ] as { id: PickMode; label: string }[]).map((m) => {
+          const on = mode === m.id;
+          return (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => changeMode(m.id)}
+              className={`rounded-xl border py-2.5 text-sm font-bold transition ${
+                on
+                  ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                  : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              {m.label}
+            </button>
+          );
+        })}
+      </div>
 
       {/* 필터 */}
       <div className="mb-4 space-y-3 rounded-2xl bg-white p-3.5 shadow-sm">
         <div>
-          <p className="mb-2 text-xs font-semibold text-gray-500">카테고리 (안 고르면 전체)</p>
-          <div className="flex flex-wrap gap-2">
-            {allCategories.map((cat) => {
-              const on = selectedCategories.includes(cat);
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => toggleCategory(cat)}
-                  className={`inline-flex items-center gap-1 rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${
-                    on
-                      ? "border-blue-600 bg-blue-600 text-white shadow-sm"
-                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                  }`}
-                >
-                  {on && <span className="text-[11px]">✓</span>}
-                  {cat}
-                </button>
-              );
-            })}
-          </div>
+          <p className="mb-2 text-xs font-semibold text-gray-500">
+            카테고리 (빼고 싶은 건 눌러서 제외)
+          </p>
+          {modeCategories.length === 0 ? (
+            <p className="text-xs text-gray-400">이 모드에 등록된 가게가 없어요.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {modeCategories.map((cat) => {
+                const on = !excluded.has(cat);
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => toggleExclude(cat)}
+                    className={`inline-flex items-center gap-1 rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${
+                      on
+                        ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                        : "border-gray-200 bg-white text-gray-400 line-through hover:bg-gray-50"
+                    }`}
+                  >
+                    {on && <span className="text-[11px]">✓</span>}
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div>
@@ -189,7 +251,9 @@ export default function PickView({
           ? "뽑는 중…"
           : phase === "result"
             ? "다시 뽑기 🎲"
-            : "오늘의 점심 뽑기 🎲"}
+            : mode === "coffee"
+              ? "오늘의 커피 뽑기 ☕"
+              : "오늘의 점심 뽑기 🎲"}
       </motion.button>
 
       {candidates.length === 0 && (
