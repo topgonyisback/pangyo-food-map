@@ -9,6 +9,7 @@ import {
   query,
   setDoc,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { MenuNote, Place, QuickScore, Review } from "@/types";
 import { auth, db } from "./firebase";
@@ -134,6 +135,25 @@ export async function updatePlaceRow(
 ): Promise<void> {
   if (!db) throw new Error(CONNECT_FAIL);
   await updateDoc(doc(db, "places", placeId), { ...patch });
+}
+
+// 가게 삭제 (규칙상 소유자만). 내가 쓴 리뷰는 함께 정리(best-effort)
+export async function deletePlaceRow(placeId: string): Promise<void> {
+  if (!db) throw new Error(CONNECT_FAIL);
+  const uid = requireUserId();
+  try {
+    const snap = await getDocs(
+      query(collection(db, "reviews"), where("placeId", "==", placeId))
+    );
+    await Promise.all(
+      snap.docs
+        .filter((d) => (d.data().userId as string) === uid)
+        .map((d) => deleteDoc(doc(db!, "reviews", d.id)))
+    );
+  } catch {
+    // 리뷰 정리 실패는 무시(가게 삭제가 우선)
+  }
+  await deleteDoc(doc(db, "places", placeId));
 }
 
 // --- Reviews ---

@@ -33,6 +33,7 @@ interface MapViewProps {
     placeId: string,
     patch: Partial<Pick<Place, "name" | "category" | "naverMapUrl">>
   ) => void;
+  onDeletePlace: (placeId: string) => void;
   onRequireLogin: () => void;
   renderCard?: boolean;
   centerOnSelect?: boolean;
@@ -53,6 +54,7 @@ export default function MapView({
   onAddPlace,
   onUpdatePlaceLocation,
   onUpdatePlace,
+  onDeletePlace,
   onRequireLogin,
   renderCard = true,
   centerOnSelect = false,
@@ -375,6 +377,7 @@ export default function MapView({
             onClose={() => onSelectPlace(null)}
             onEditLocation={() => onStartEditLocation(selectedPlace.id)}
             onUpdatePlace={onUpdatePlace}
+            onDeletePlace={onDeletePlace}
             onRequireLogin={onRequireLogin}
           />
         </div>

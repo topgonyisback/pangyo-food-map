@@ -26,6 +26,7 @@ interface ListPanelProps {
     placeId: string,
     patch: Partial<Pick<Place, "name" | "category" | "naverMapUrl">>
   ) => void;
+  onDeletePlace: (placeId: string) => void;
   onRequireLogin: () => void;
 }
 
@@ -39,6 +40,7 @@ export default function ListPanel({
   onDeleteReview,
   onEditLocation,
   onUpdatePlace,
+  onDeletePlace,
   onRequireLogin,
 }: ListPanelProps) {
   const [category, setCategory] = useState<string>(ALL);
@@ -142,6 +144,7 @@ export default function ListPanel({
             onClose={() => onSelectPlace(null)}
             onEditLocation={() => onEditLocation(selectedPlace.id)}
             onUpdatePlace={onUpdatePlace}
+            onDeletePlace={onDeletePlace}
             onRequireLogin={onRequireLogin}
           />
         </div>

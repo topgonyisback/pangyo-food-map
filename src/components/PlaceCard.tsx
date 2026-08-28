@@ -217,6 +217,7 @@ interface PlaceCardProps {
     placeId: string,
     patch: Partial<Pick<Place, "name" | "category" | "naverMapUrl">>
   ) => void;
+  onDeletePlace: (placeId: string) => void;
   onRequireLogin: () => void;
 }
 
@@ -229,6 +230,7 @@ export default function PlaceCard({
   onClose,
   onEditLocation,
   onUpdatePlace,
+  onDeletePlace,
   onRequireLogin,
 }: PlaceCardProps) {
   const { user, nickname } = useAuth();
@@ -243,6 +245,20 @@ export default function PlaceCard({
   const [draft, setDraft] = useState<ReviewDraft>(EMPTY_DRAFT);
   const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<ReviewDraft>(EMPTY_DRAFT);
+  const [copied, setCopied] = useState(false);
+
+  function handleShare() {
+    const url = `${window.location.origin}${window.location.pathname}?place=${place.id}`;
+    const done = () => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(done).catch(done);
+    } else {
+      done();
+    }
+  }
 
   function startEditingInfo() {
     setEditName(place.name);
@@ -301,14 +317,24 @@ export default function PlaceCard({
           <p className="text-xs font-medium text-blue-600">{place.category}</p>
           <h2 className="truncate text-lg font-bold text-gray-900">{place.name}</h2>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="ml-2 shrink-0 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-          aria-label="닫기"
-        >
-          ✕
-        </button>
+        <div className="ml-2 flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={handleShare}
+            className="whitespace-nowrap rounded-full px-2 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+            aria-label="공유 링크 복사"
+          >
+            {copied ? "복사됨 ✓" : "🔗 공유"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            aria-label="닫기"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       {/* 종합평가 요약: 5점 평균 + 그라데이션 채움 바 + 5단계 분포 축 */}
@@ -375,6 +401,17 @@ export default function PlaceCard({
                 저장
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm(`'${place.name}' 가게를 삭제할까요?\n삭제하면 되돌릴 수 없어요.`)) {
+                  onDeletePlace(place.id);
+                }
+              }}
+              className="mt-1 w-full rounded-lg border border-red-200 py-2 text-sm font-semibold text-red-500 hover:bg-red-50"
+            >
+              🗑️ 가게 삭제
+            </button>
           </div>
         ) : (
           /* 네이버지도 · (평가남기기|정보수정·위치수정) 한 줄 배치 */

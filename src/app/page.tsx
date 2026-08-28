@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import MapView from "@/components/MapView";
 import ListPanel from "@/components/ListPanel";
 import PickView from "@/components/PickView";
@@ -35,7 +35,8 @@ function HomeInner() {
   const [pinMode, setPinMode] = useState<PinMode>(null);
   const [authModal, setAuthModal] = useState<AuthMode | null>(null);
   const [focusNonce, setFocusNonce] = useState(0);
-  const { places, addPlace, updatePlaceLocation, updatePlace, loadError } = usePlaces();
+  const { places, addPlace, updatePlaceLocation, updatePlace, removePlace, loadError } =
+    usePlaces();
   const { reviews, addReview, updateReview, deleteReview } = useReviews();
   const hydrated = useIsHydrated();
   const { user } = useAuth();
@@ -72,6 +73,45 @@ function HomeInner() {
     setFocusNonce((n) => n + 1);
   }
 
+  // 딥링크: 첫 렌더에서 URL의 ?place=<id> 를 캡처(아래 URL 반영 이펙트가 지우기 전에)
+  const initialPlaceRef = useRef<string | null>(
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("place")
+      : null
+  );
+  const appliedUrlRef = useRef(false);
+  useEffect(() => {
+    if (appliedUrlRef.current || places.length === 0) return;
+    appliedUrlRef.current = true;
+    const pid = initialPlaceRef.current;
+    if (pid && places.some((p) => p.id === pid)) {
+      const raf = requestAnimationFrame(() => {
+        setView("map");
+        setSelectedPlaceId(pid);
+        setFocusNonce((n) => n + 1);
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [places]);
+
+  // 선택된 가게를 URL에 반영(공유용) — history 오염 없이 교체
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (selectedPlaceId) url.searchParams.set("place", selectedPlaceId);
+    else url.searchParams.delete("place");
+    window.history.replaceState(null, "", url.toString());
+  }, [selectedPlaceId]);
+
+  async function handleDeletePlace(placeId: string) {
+    try {
+      await removePlace(placeId);
+      setSelectedPlaceId(null);
+    } catch (e) {
+      console.error("가게 삭제 실패:", e);
+      alert("가게 삭제에 실패했어요. 잠시 후 다시 시도해주세요.");
+    }
+  }
+
   return (
     <div className="relative h-full w-full overflow-hidden">
       {/* 전체 화면 지도 배경 (지도/리스트/뭐먹지 공통) */}
@@ -91,6 +131,7 @@ function HomeInner() {
             onAddPlace={addPlace}
             onUpdatePlaceLocation={updatePlaceLocation}
             onUpdatePlace={updatePlace}
+            onDeletePlace={handleDeletePlace}
             onRequireLogin={requireLogin}
             renderCard={view === "map"}
             centerOnSelect={view !== "map"}
@@ -116,6 +157,7 @@ function HomeInner() {
           onDeleteReview={deleteReview}
           onEditLocation={startEditingLocation}
           onUpdatePlace={updatePlace}
+          onDeletePlace={handleDeletePlace}
           onRequireLogin={requireLogin}
         />
       )}

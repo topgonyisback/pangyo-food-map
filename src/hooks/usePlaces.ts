@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Place } from "@/types";
-import { fetchPlaces, insertPlace, updatePlaceRow } from "@/lib/db";
+import { deletePlaceRow, fetchPlaces, insertPlace, updatePlaceRow } from "@/lib/db";
 
 export function usePlaces() {
   const [places, setPlaces] = useState<Place[]>([]);
@@ -46,5 +46,18 @@ export function usePlaces() {
     updatePlaceRow(placeId, patch).catch((e) => console.error("정보 저장 실패:", e));
   }
 
-  return { places, addPlace, updatePlaceLocation, updatePlace, loading, loadError };
+  async function removePlace(placeId: string): Promise<void> {
+    await deletePlaceRow(placeId);
+    setPlaces((prev) => prev.filter((p) => p.id !== placeId));
+  }
+
+  return {
+    places,
+    addPlace,
+    updatePlaceLocation,
+    updatePlace,
+    removePlace,
+    loading,
+    loadError,
+  };
 }
