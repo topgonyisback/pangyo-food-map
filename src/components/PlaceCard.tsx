@@ -25,7 +25,7 @@ import {
   SegmentedRatingInput,
 } from "./SegmentedRating";
 import { useAuth } from "@/hooks/useAuth";
-import { deletePhotoUrls, uploadReviewPhotos } from "@/lib/storage";
+import { deletePhotoUrls, thumbUrl, uploadReviewPhotos } from "@/lib/storage";
 import { MAX_PHOTOS_PER_REVIEW, validateImageFile } from "@/lib/image";
 
 const TIERS: ThreeTier[] = ["bad", "soso", "good"];
@@ -111,7 +111,7 @@ function PhotoPicker({
         {draft.photos.map((u) => (
           <div key={u} className="relative h-16 w-16 overflow-hidden rounded-lg bg-gray-100">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={u} alt="" className="h-full w-full object-cover" />
+            <img src={thumbUrl(u, 128)} alt="" className="h-full w-full object-cover" />
             <button
               type="button"
               onClick={() =>
@@ -589,7 +589,7 @@ export default function PlaceCard({
                   className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-gray-100"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={u} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  <img src={thumbUrl(u, 160)} alt="" className="h-full w-full object-cover" loading="lazy" />
                 </button>
               ))}
             </div>
@@ -821,7 +821,7 @@ export default function PlaceCard({
                             className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-gray-100"
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={u} alt="" className="h-full w-full object-cover" loading="lazy" />
+                            <img src={thumbUrl(u, 112)} alt="" className="h-full w-full object-cover" loading="lazy" />
                           </button>
                         ))}
                       </div>
