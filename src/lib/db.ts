@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { MenuNote, Place, QuickScore, Review } from "@/types";
 import { auth, db } from "./firebase";
+import { deletePhotoUrls } from "./storage";
 
 // 한줄 평가 값 정규화: 신규는 0~5(0.5 단위) 숫자, 구버전은 "bad"/"soso"/"good" 문자열 → 1/3/5
 function normalizeQuick(v: unknown): QuickScore {
@@ -58,6 +59,7 @@ function toReview(id: string, d: Record<string, unknown>): Review {
     restroomRating: (d.restroomRating as Review["restroomRating"]) ?? undefined,
     freeComment: (d.freeComment as string) ?? undefined,
     menuNotes: (d.menuNotes as MenuNote[]) ?? [],
+    photos: Array.isArray(d.photos) ? (d.photos as string[]) : [],
     createdAt: (d.createdAt as string) ?? "",
     userId: (d.userId as string) ?? null,
   };
@@ -148,7 +150,10 @@ export async function deletePlaceRow(placeId: string): Promise<void> {
     await Promise.all(
       snap.docs
         .filter((d) => (d.data().userId as string) === uid)
-        .map((d) => deleteDoc(doc(db!, "reviews", d.id)))
+        .map(async (d) => {
+          await deletePhotoUrls((d.data().photos as string[] | undefined) ?? []);
+          await deleteDoc(doc(db!, "reviews", d.id));
+        })
     );
   } catch {
     // 리뷰 정리 실패는 무시(가게 삭제가 우선)
@@ -177,6 +182,7 @@ export async function insertReview(
     restroomRating: review.restroomRating ?? null,
     freeComment: review.freeComment ?? null,
     menuNotes: review.menuNotes,
+    photos: review.photos ?? [],
     userId,
     createdAt: new Date().toISOString(),
   };
@@ -189,7 +195,7 @@ export async function updateReviewRow(
   patch: Partial<
     Pick<
       Review,
-      "quickRating" | "atmosphereRating" | "restroomRating" | "freeComment" | "menuNotes"
+      "quickRating" | "atmosphereRating" | "restroomRating" | "freeComment" | "menuNotes" | "photos"
     >
   >
 ): Promise<void> {
@@ -202,10 +208,20 @@ export async function updateReviewRow(
     dbPatch.restroomRating = patch.restroomRating ?? null;
   if (patch.freeComment !== undefined) dbPatch.freeComment = patch.freeComment ?? null;
   if (patch.menuNotes !== undefined) dbPatch.menuNotes = patch.menuNotes;
+  if (patch.photos !== undefined) dbPatch.photos = patch.photos;
   await updateDoc(doc(db, "reviews", reviewId), dbPatch);
 }
 
 export async function deleteReviewRow(reviewId: string): Promise<void> {
   if (!db) throw new Error(CONNECT_FAIL);
-  await deleteDoc(doc(db, "reviews", reviewId));
+  const refDoc = doc(db, "reviews", reviewId);
+  // 사진 먼저 정리(best-effort) 후 문서 삭제
+  try {
+    const snap = await getDoc(refDoc);
+    const photos = (snap.data()?.photos as string[] | undefined) ?? [];
+    await deletePhotoUrls(photos);
+  } catch {
+    // 사진 정리 실패는 무시
+  }
+  await deleteDoc(refDoc);
 }

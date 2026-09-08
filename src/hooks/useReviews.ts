@@ -6,7 +6,7 @@ import { deleteReviewRow, fetchReviews, insertReview, updateReviewRow } from "@/
 
 type ReviewEditable = Pick<
   Review,
-  "quickRating" | "atmosphereRating" | "restroomRating" | "freeComment" | "menuNotes"
+  "quickRating" | "atmosphereRating" | "restroomRating" | "freeComment" | "menuNotes" | "photos"
 >;
 
 export function useReviews() {

@@ -47,6 +47,7 @@ export interface Review {
   restroomRating?: ThreeTier;
   freeComment?: string;
   menuNotes: MenuNote[];
+  photos: string[]; // 리뷰 사진 다운로드 URL (최대 5장)
   createdAt: string;
   userId?: string | null;
 }

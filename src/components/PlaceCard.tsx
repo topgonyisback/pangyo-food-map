@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ATMOSPHERE_TIER_LABEL,
   MENU_TIER_LABEL,
@@ -25,6 +25,8 @@ import {
   SegmentedRatingInput,
 } from "./SegmentedRating";
 import { useAuth } from "@/hooks/useAuth";
+import { deletePhotoUrls, uploadReviewPhotos } from "@/lib/storage";
+import { MAX_PHOTOS_PER_REVIEW, validateImageFile } from "@/lib/image";
 
 const TIERS: ThreeTier[] = ["bad", "soso", "good"];
 
@@ -34,6 +36,8 @@ type ReviewDraft = {
   restroomRating?: ThreeTier;
   freeComment: string;
   menuNotes: MenuNote[];
+  photos: string[]; // 이미 업로드된 사진 URL (수정 시)
+  newFiles: File[]; // 아직 업로드 안 한 새 사진
 };
 
 function TierButtons({
@@ -61,6 +65,194 @@ function TierButtons({
           {labels[tier]}
         </button>
       ))}
+    </div>
+  );
+}
+
+// 사진 선택기: 기존 사진(URL) + 새 파일 미리보기, 리뷰당 최대 5장
+function PhotoPicker({
+  draft,
+  setDraft,
+}: {
+  draft: ReviewDraft;
+  setDraft: (updater: (prev: ReviewDraft) => ReviewDraft) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const previews = useMemo(
+    () => draft.newFiles.map((f) => URL.createObjectURL(f)),
+    [draft.newFiles]
+  );
+  useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
+
+  const total = draft.photos.length + draft.newFiles.length;
+  const remaining = MAX_PHOTOS_PER_REVIEW - total;
+
+  function onFiles(list: FileList | null) {
+    if (!list) return;
+    const picked: File[] = [];
+    const errors: string[] = [];
+    for (const f of Array.from(list)) {
+      if (picked.length >= remaining) break;
+      const err = validateImageFile(f);
+      if (err) errors.push(`${f.name}: ${err}`);
+      else picked.push(f);
+    }
+    if (errors.length) alert(errors.join("\n"));
+    if (picked.length) setDraft((prev) => ({ ...prev, newFiles: [...prev.newFiles, ...picked] }));
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  return (
+    <div className="mt-2">
+      <label className="mb-1 block text-xs text-gray-500">
+        사진 (선택) · {total}/{MAX_PHOTOS_PER_REVIEW}
+      </label>
+      <div className="flex flex-wrap gap-2">
+        {draft.photos.map((u) => (
+          <div key={u} className="relative h-16 w-16 overflow-hidden rounded-lg bg-gray-100">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={u} alt="" className="h-full w-full object-cover" />
+            <button
+              type="button"
+              onClick={() =>
+                setDraft((prev) => ({ ...prev, photos: prev.photos.filter((p) => p !== u) }))
+              }
+              className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-[11px] text-white"
+              aria-label="사진 제거"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        {previews.map((u, i) => (
+          <div key={u} className="relative h-16 w-16 overflow-hidden rounded-lg bg-gray-100">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={u} alt="" className="h-full w-full object-cover" />
+            <button
+              type="button"
+              onClick={() =>
+                setDraft((prev) => ({
+                  ...prev,
+                  newFiles: prev.newFiles.filter((_, idx) => idx !== i),
+                }))
+              }
+              className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-[11px] text-white"
+              aria-label="사진 제거"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        {remaining > 0 && (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="flex h-16 w-16 flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 text-gray-500 hover:bg-gray-100"
+          >
+            <span className="text-lg leading-none">📷</span>
+            <span className="mt-0.5 text-[10px]">추가</span>
+          </button>
+        )}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => onFiles(e.target.files)}
+      />
+      <p className="mt-1 text-[10px] text-gray-400">업로드 시 자동으로 축소·압축돼요 (장당 약 300KB)</p>
+    </div>
+  );
+}
+
+// 전체화면 사진 보기 (좌우/ESC/스와이프)
+function Lightbox({
+  photos,
+  index,
+  onClose,
+  onIndex,
+}: {
+  photos: string[];
+  index: number;
+  onClose: () => void;
+  onIndex: (i: number) => void;
+}) {
+  const touchX = useRef<number | null>(null);
+  const prev = () => onIndex((index - 1 + photos.length) % photos.length);
+  const next = () => onIndex((index + 1) % photos.length);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.stopImmediatePropagation(); // 지도 카드 닫기(ESC) 핸들러까지 막기
+        onClose();
+      } else if (e.key === "ArrowRight") next();
+      else if (e.key === "ArrowLeft") prev();
+    }
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, photos.length]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90"
+      onClick={onClose}
+      onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
+      onTouchEnd={(e) => {
+        if (touchX.current === null) return;
+        const dx = e.changedTouches[0].clientX - touchX.current;
+        touchX.current = null;
+        if (dx > 40) prev();
+        else if (dx < -40) next();
+      }}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute right-3 top-3 rounded-full bg-white/15 px-3 py-1.5 text-sm text-white hover:bg-white/25"
+        aria-label="닫기"
+      >
+        ✕
+      </button>
+      {photos.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              prev();
+            }}
+            className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/15 px-3 py-2 text-2xl text-white hover:bg-white/25"
+            aria-label="이전"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              next();
+            }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/15 px-3 py-2 text-2xl text-white hover:bg-white/25"
+            aria-label="다음"
+          >
+            ›
+          </button>
+        </>
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={photos[index]}
+        alt=""
+        className="max-h-[85vh] max-w-[95vw] object-contain"
+        onClick={(e) => e.stopPropagation()}
+      />
+      <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-white/80">
+        {index + 1} / {photos.length}
+      </p>
     </div>
   );
 }
@@ -100,6 +292,8 @@ function RatingFields({
         placeholder="자유롭게 의견을 남겨주세요"
         className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-900"
       />
+
+      <PhotoPicker draft={draft} setDraft={setDraft} />
 
       <button
         type="button"
@@ -187,15 +381,19 @@ const EMPTY_DRAFT: ReviewDraft = {
   restroomRating: undefined,
   freeComment: "",
   menuNotes: [],
+  photos: [],
+  newFiles: [],
 };
 
-function draftToPatch(draft: ReviewDraft) {
+// newFiles는 제출 시점에 업로드해서 photos로 합친 뒤 넘김
+function draftToPatch(draft: ReviewDraft, photos: string[]) {
   return {
     quickRating: draft.quickRating!,
     atmosphereRating: draft.atmosphereRating,
     restroomRating: draft.restroomRating,
     freeComment: draft.freeComment.trim() || undefined,
     menuNotes: draft.menuNotes.filter((n) => n.menuName.trim().length > 0),
+    photos,
   };
 }
 
@@ -207,7 +405,7 @@ interface PlaceCardProps {
     reviewId: string,
     patch: Pick<
       Review,
-      "quickRating" | "atmosphereRating" | "restroomRating" | "freeComment" | "menuNotes"
+      "quickRating" | "atmosphereRating" | "restroomRating" | "freeComment" | "menuNotes" | "photos"
     >
   ) => void;
   onDeleteReview: (reviewId: string) => void;
@@ -245,6 +443,8 @@ export default function PlaceCard({
   const [draft, setDraft] = useState<ReviewDraft>(EMPTY_DRAFT);
   const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<ReviewDraft>(EMPTY_DRAFT);
+  const [uploading, setUploading] = useState(false);
+  const [lightbox, setLightbox] = useState<{ photos: string[]; index: number } | null>(null);
   const [copied, setCopied] = useState(false);
 
   function handleShare() {
@@ -279,15 +479,24 @@ export default function PlaceCard({
 
   const categoryOptions = Array.from(new Set([...PRESET_CATEGORIES, place.category]));
 
-  function handleSubmit() {
-    if (draft.quickRating === undefined) return;
-    onAddReview({
-      placeId: place.id,
-      authorName: nickname ?? "익명",
-      ...draftToPatch(draft),
-    });
-    setDraft(EMPTY_DRAFT);
-    setShowRatingForm(false);
+  async function handleSubmit() {
+    if (draft.quickRating === undefined || uploading || !user) return;
+    setUploading(true);
+    try {
+      const uploaded = await uploadReviewPhotos(draft.newFiles, user.uid);
+      onAddReview({
+        placeId: place.id,
+        authorName: nickname ?? "익명",
+        ...draftToPatch(draft, [...draft.photos, ...uploaded]),
+      });
+      setDraft(EMPTY_DRAFT);
+      setShowRatingForm(false);
+    } catch (e) {
+      console.error("사진 업로드 실패:", e);
+      alert(e instanceof Error ? e.message : "사진 업로드에 실패했어요.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   function startEditReview(r: Review) {
@@ -298,17 +507,33 @@ export default function PlaceCard({
       restroomRating: r.restroomRating,
       freeComment: r.freeComment ?? "",
       menuNotes: r.menuNotes,
+      photos: r.photos,
+      newFiles: [],
     });
   }
 
-  function handleSaveEdit() {
-    if (!editingReviewId || editDraft.quickRating === undefined) return;
-    onUpdateReview(editingReviewId, draftToPatch(editDraft));
-    setEditingReviewId(null);
+  async function handleSaveEdit() {
+    if (!editingReviewId || editDraft.quickRating === undefined || uploading || !user) return;
+    setUploading(true);
+    try {
+      const uploaded = await uploadReviewPhotos(editDraft.newFiles, user.uid);
+      const photos = [...editDraft.photos, ...uploaded];
+      const original = reviews.find((r) => r.id === editingReviewId);
+      const removed = (original?.photos ?? []).filter((u) => !editDraft.photos.includes(u));
+      onUpdateReview(editingReviewId, draftToPatch(editDraft, photos));
+      setEditingReviewId(null);
+      void deletePhotoUrls(removed); // 빼버린 사진은 저장소에서도 정리(best-effort)
+    } catch (e) {
+      console.error("사진 업로드 실패:", e);
+      alert(e instanceof Error ? e.message : "사진 업로드에 실패했어요.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   const score = averageQuickRating(reviews);
   const dist = ratingDistribution(reviews);
+  const allPhotos = reviews.flatMap((r) => r.photos);
 
   return (
     <div className="flex h-full flex-col bg-white">
@@ -351,6 +576,26 @@ export default function PlaceCard({
       )}
 
       <div className="flex-1 overflow-y-auto p-4">
+        {/* 이 가게의 전체 사진 (모든 리뷰 사진 모음) */}
+        {allPhotos.length > 0 && (
+          <div className="mb-3">
+            <p className="mb-1.5 text-xs font-semibold text-gray-500">📷 사진 {allPhotos.length}장</p>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {allPhotos.map((u, i) => (
+                <button
+                  key={`${u}-${i}`}
+                  type="button"
+                  onClick={() => setLightbox({ photos: allPhotos, index: i })}
+                  className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-gray-100"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={u} alt="" className="h-full w-full object-cover" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {isEditingInfo ? (
           <div className="mb-4 space-y-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
             <p className="text-sm font-semibold text-gray-800">가게 정보 수정</p>
@@ -480,10 +725,10 @@ export default function PlaceCard({
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  disabled={draft.quickRating === undefined}
+                  disabled={draft.quickRating === undefined || uploading}
                   className="flex-1 rounded-lg bg-blue-600 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
                 >
-                  평가 등록
+                  {uploading ? "사진 업로드 중…" : "평가 등록"}
                 </button>
               </div>
             </div>
@@ -522,10 +767,10 @@ export default function PlaceCard({
                         <button
                           type="button"
                           onClick={handleSaveEdit}
-                          disabled={editDraft.quickRating === undefined}
+                          disabled={editDraft.quickRating === undefined || uploading}
                           className="flex-1 rounded-lg bg-blue-600 py-2 text-sm font-semibold text-white disabled:bg-gray-300"
                         >
-                          저장
+                          {uploading ? "사진 업로드 중…" : "저장"}
                         </button>
                       </div>
                     </li>
@@ -566,6 +811,21 @@ export default function PlaceCard({
                     {r.freeComment && (
                       <p className="mt-1 whitespace-pre-line text-gray-700">{r.freeComment}</p>
                     )}
+                    {r.photos.length > 0 && (
+                      <div className="mt-2 flex gap-1.5 overflow-x-auto">
+                        {r.photos.map((u, i) => (
+                          <button
+                            key={u}
+                            type="button"
+                            onClick={() => setLightbox({ photos: r.photos, index: i })}
+                            className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-gray-100"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={u} alt="" className="h-full w-full object-cover" loading="lazy" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {mine && (
                       <div className="mt-2 flex gap-3 text-xs">
                         <button
@@ -593,6 +853,15 @@ export default function PlaceCard({
           )}
         </div>
       </div>
+
+      {lightbox && (
+        <Lightbox
+          photos={lightbox.photos}
+          index={lightbox.index}
+          onClose={() => setLightbox(null)}
+          onIndex={(i) => setLightbox({ photos: lightbox.photos, index: i })}
+        />
+      )}
     </div>
   );
 }

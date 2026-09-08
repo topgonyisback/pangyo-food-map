@@ -17,7 +17,7 @@ interface ListPanelProps {
     reviewId: string,
     patch: Pick<
       Review,
-      "quickRating" | "atmosphereRating" | "restroomRating" | "freeComment" | "menuNotes"
+      "quickRating" | "atmosphereRating" | "restroomRating" | "freeComment" | "menuNotes" | "photos"
     >
   ) => void;
   onDeleteReview: (reviewId: string) => void;
