@@ -110,15 +110,25 @@ export function ReelPicker({ candidates, onPicked }: PickerProps) {
 }
 
 /* ---------- 2. 돌림판 ---------- */
+const WHEEL_SIZE_OPTIONS = [4, 6, 8, 10, 12];
+
 export function WheelPicker({ candidates, onPicked }: PickerProps) {
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
+  const [sliceCount, setSliceCount] = useState(WHEEL_MAX);
+  const [shuffleKey, setShuffleKey] = useState(0); // 값이 바뀌면 조각 재추첨
   const slices = useMemo(
-    () => (candidates.length > WHEEL_MAX ? sample(candidates, WHEEL_MAX) : candidates),
-    [candidates]
+    () => (candidates.length > sliceCount ? sample(candidates, sliceCount) : candidates),
+    // shuffleKey는 재추첨 트리거용
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [candidates, sliceCount, shuffleKey]
   );
   const n = slices.length;
   const sliceAngle = n > 0 ? 360 / n : 360;
+  const canReshuffle = candidates.length > sliceCount && !spinning;
+  // 조각이 많아지면 글자 크기·길이 자동 축소
+  const fontSize = n <= 6 ? 10 : n <= 8 ? 9 : n <= 10 ? 8 : 7;
+  const maxChars = n <= 6 ? 6 : n <= 8 ? 5 : 4;
 
   function pointOnCircle(cx: number, cy: number, r: number, deg: number) {
     const rad = (deg * Math.PI) / 180;
@@ -175,7 +185,8 @@ export function WheelPicker({ candidates, onPicked }: PickerProps) {
               const large = sliceAngle > 180 ? 1 : 0;
               const mid = a1 + sliceAngle / 2;
               const [lx, ly] = pointOnCircle(C, C, R * 0.62, mid);
-              const name = p.name.length > 6 ? p.name.slice(0, 6) + "…" : p.name;
+              const name =
+                p.name.length > maxChars ? p.name.slice(0, maxChars) + "…" : p.name;
               return (
                 <g key={p.id}>
                   <path
@@ -190,7 +201,7 @@ export function WheelPicker({ candidates, onPicked }: PickerProps) {
                     x={lx}
                     y={ly}
                     fill="#fff"
-                    fontSize="9"
+                    fontSize={fontSize}
                     fontWeight="700"
                     textAnchor="middle"
                     dominantBaseline="middle"
@@ -205,9 +216,36 @@ export function WheelPicker({ candidates, onPicked }: PickerProps) {
           </motion.svg>
         </div>
       </div>
-      {candidates.length > WHEEL_MAX && (
+      {/* 조각 수 + 재추첨 */}
+      <div className="mt-2 flex items-center justify-center gap-2 text-xs text-gray-500">
+        <label className="flex items-center gap-1">
+          조각
+          <select
+            value={sliceCount}
+            disabled={spinning}
+            onChange={(e) => setSliceCount(Number(e.target.value))}
+            className="rounded-md border border-gray-300 bg-white px-1.5 py-1 text-xs text-gray-700"
+          >
+            {WHEEL_SIZE_OPTIONS.map((v) => (
+              <option key={v} value={v}>
+                {v}개
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          onClick={() => setShuffleKey((k) => k + 1)}
+          disabled={!canReshuffle}
+          className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          title={canReshuffle ? "다른 가게 조합으로 바꾸기" : "후보가 모두 올라가 있어요"}
+        >
+          🔀 다른 가게로
+        </button>
+      </div>
+      {candidates.length > sliceCount && (
         <p className="mt-1 text-center text-[11px] text-gray-400">
-          후보가 많아 무작위 {WHEEL_MAX}곳만 올렸어요
+          후보 {candidates.length}곳 중 무작위 {sliceCount}곳만 올렸어요
         </p>
       )}
       <div className="mt-3">
